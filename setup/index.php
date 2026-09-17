@@ -24,6 +24,57 @@ function leanks_random_key( $length = 64 ) {
     return bin2hex( random_bytes( (int) ceil( $length / 2 ) ) );
 }
 
+/**
+ * Turn the most common PDO connection failures into a message that says what to actually do,
+ * instead of a raw driver error. "Access denied" in particular is almost always a shared-hosting
+ * setup step, not a typo -- most hosts require the database and user to be created (and the user
+ * granted access to that database) via the control panel before anything can connect.
+ */
+function leanks_setup_friendly_db_error( \Throwable $e ) {
+    $msg = $e->getMessage();
+
+    if ( stripos( $msg, 'Access denied' ) !== false ) {
+        return "Access denied connecting to the database. On cPanel-style hosting this almost always means "
+            . "the database and user exist but were never linked: go to MySQL Databases, use \"Add User to "
+            . "Database\" to grant that user ALL PRIVILEGES on this database, and double-check the username -- "
+            . "cPanel usually prefixes it with your account name (e.g. youraccount_dbuser), not just the short "
+            . "name you typed when creating it. Original error: " . $msg;
+    }
+
+    if ( stripos( $msg, 'command denied' ) !== false ) {
+        return "The database user is missing a privilege it needs to finish installing. In cPanel: MySQL "
+            . "Databases -> Add User to Database -> make sure ALL PRIVILEGES is checked for this user on this "
+            . "database, then submit this form again. Original error: " . $msg;
+    }
+
+    if ( stripos( $msg, 'Unknown database' ) !== false ) {
+        return "That database doesn't exist and this user isn't allowed to create it (normal on shared "
+            . "hosting). Create the database first via your host's control panel, then retry. Original error: " . $msg;
+    }
+
+    if ( stripos( $msg, 'could not find driver' ) !== false ) {
+        return "The PHP pdo_mysql extension isn't available on this server -- ask your host to enable it. Original error: " . $msg;
+    }
+
+    return 'Could not connect to the database: ' . $msg;
+}
+
+/**
+ * yourls_create_sql_tables() (stock YOURLS, includes/functions-install.php) returns only a
+ * fixed set of plain-English messages with no further detail. "Could not insert sample short
+ * URLs" specifically is almost always a missing INSERT privilege -- table creation only needs
+ * CREATE, so it's easy to grant just enough privileges in cPanel for tables to appear but not
+ * enough to actually write rows.
+ */
+function leanks_setup_friendly_install_error( $message ) {
+    if ( $message === 'Could not insert sample short URLs' ) {
+        return $message . ' -- this usually means the database user is missing the INSERT privilege. '
+            . 'In cPanel: MySQL Databases -> Add User to Database -> make sure ALL PRIVILEGES is checked '
+            . 'for this user on this database, then submit this form again.';
+    }
+    return $message;
+}
+
 $defaults = [
     'db_host'   => 'localhost',
     'db_name'   => '',
@@ -87,7 +138,26 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && !$already_installed ) {
                 $pdo = new PDO( 'mysql:host=' . $dsn_host . ';charset=utf8mb4', $values['db_user'], $values['db_pass'] );
                 $pdo->exec( 'CREATE DATABASE IF NOT EXISTS `' . $db_name_escaped . '` CHARACTER SET utf8mb4 COLLATE utf8mb4_bin' );
             } catch ( \PDOException $e2 ) {
-                $errors[] = 'Could not connect to the database: ' . $e->getMessage();
+                $errors[] = leanks_setup_friendly_db_error( $e );
+            }
+        }
+
+        // yourls_create_sql_tables() (stock YOURLS) assumes it's running against an empty
+        // database and isn't written to be safely re-run -- initializing options or inserting the
+        // fixed-keyword sample links both fail if that data already exists. This has to happen
+        // now, before YOURLS bootstraps below and caches option values into memory: a truncate
+        // done after that point wouldn't be reflected in what this request already cached, and
+        // yourls_update_option() would wrongly think nothing changed. The only way to reach this
+        // point with existing data is a previous attempt through this same wizard that got partway
+        // through before failing later (it refuses to run at all once user/config.php exists), so
+        // it's safe to clear these tables and let this attempt create everything fresh.
+        if ( empty( $errors ) && isset( $pdo ) ) {
+            foreach ( [ 'url', 'options', 'log' ] as $suffix ) {
+                try {
+                    $pdo->exec( 'TRUNCATE TABLE `' . $values['db_prefix'] . $suffix . '`' );
+                } catch ( \PDOException $e ) {
+                    // Table doesn't exist yet on a genuinely fresh database -- nothing to clean up.
+                }
             }
         }
     }
@@ -124,7 +194,7 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && !$already_installed ) {
 
             $install = yourls_create_sql_tables();
             if ( !empty( $install['error'] ) ) {
-                $errors = array_merge( $errors, $install['error'] );
+                $errors = array_merge( $errors, array_map( 'leanks_setup_friendly_install_error', $install['error'] ) );
             } else {
                 yourls_create_htaccess();
                 // Activating the plugin include()s plugin.php, which defines leanks_maybe_create_table();
@@ -138,8 +208,17 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && !$already_installed ) {
                 $success = empty( $errors );
             }
         } catch ( \Throwable $e ) {
-            $errors[] = 'Setup failed: ' . $e->getMessage();
+            $errors[] = leanks_setup_friendly_db_error( $e );
         }
+    }
+
+    // $already_installed was false when this request started (otherwise the block above never
+    // would have run), so if user/config.php exists now, this request wrote it. Remove it again
+    // on any failure -- otherwise the wizard would block a retry with "already configured" even
+    // though the install never actually finished.
+    if ( !$success && file_exists( $config_path ) ) {
+        @unlink( $config_path );
+        $errors[] = "This attempt didn't finish, so the partially-written user/config.php was removed automatically -- fix the issue above, then submit the form again.";
     }
 }
 ?>

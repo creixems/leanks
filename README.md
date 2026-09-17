@@ -42,14 +42,21 @@ plain CSS, replacing YOURLS' classic PHP admin panel look without touching YOURL
 
 ## Installing
 
-1. Upload the contents of this repository to your web root (e.g. `public_html`), keeping the
+1. **Create a MySQL database and database user, and grant that user access to it.** The setup
+   wizard connects to an existing database -- on shared/cPanel hosting it typically can't create
+   one itself (the DB user usually lacks CREATE privileges), and it definitely can't create MySQL
+   users. In cPanel: **MySQL® Databases** -> create a database -> create a user -> **Add User to
+   Database** with ALL PRIVILEGES checked. cPanel usually prefixes both the database and user name
+   with your account name (e.g. `youraccount_leanks`) -- use the exact names it shows you, not the
+   short name you typed when creating them.
+2. Upload the contents of this repository to your web root (e.g. `public_html`), keeping the
    folder structure intact.
-2. Visit `https://your-domain.com/setup/` in a browser and fill in your database details and an
-   admin username/password. This writes `user/config.php`, creates the database tables, and
-   activates the Leanks plugin automatically.
-3. **Delete (or password-protect) the `/setup` folder once installed** -- it can rewrite your
+3. Visit `https://your-domain.com/setup/` in a browser and fill in the database details from step
+   1 and an admin username/password. This writes `user/config.php`, creates the database tables,
+   and activates the Leanks plugin automatically.
+4. **Delete (or password-protect) the `/setup` folder once installed** -- it can rewrite your
    database credentials and shouldn't stay reachable.
-4. Go to `https://your-domain.com/app/` and log in with the admin account you just created.
+5. Go to `https://your-domain.com/app/` and log in with the admin account you just created.
 
 Prefer to configure by hand? Copy `user/config-sample.php` to `user/config.php`, fill in your
 settings, then visit `/admin/install.php` (YOURLS' own installer) followed by `/admin/plugins.php`
