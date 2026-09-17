@@ -25,6 +25,15 @@
 </div>
 
 <main class="container">
+  <div class="update-banner hidden" id="update-banner">
+    <span id="update-banner-text"></span>
+    <div class="update-banner-actions">
+      <button type="button" class="btn btn-secondary btn-sm" id="update-banner-view">View changelog</button>
+      <button type="button" class="btn btn-primary btn-sm" id="update-banner-update">Update now</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="update-banner-dismiss" title="Dismiss">&times;</button>
+    </div>
+  </div>
+
   <div class="stat-row">
     <div class="stat-card">
       <div class="stat-label">Total links</div>
@@ -136,6 +145,18 @@
     </div>
     <div id="import-body"></div>
     <div class="modal-footer" id="import-footer"></div>
+  </div>
+</div>
+
+<!-- Update modal -->
+<div class="modal-backdrop hidden" id="update-modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="update-modal-title">Update Leanks</h2>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <div id="update-body"></div>
+    <div class="modal-footer" id="update-footer"></div>
   </div>
 </div>
 

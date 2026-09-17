@@ -1,0 +1,73 @@
+name: Release
+
+# Builds the release artifacts that the in-app update engine consumes
+# (user/plugins/leanks/includes/update.php): a zip of every git-tracked file (minus .github/),
+# a manifest.json listing those same paths (used to diff add/remove/update across versions),
+# and a sha256 checksum of the zip. Published as a DRAFT release -- the update engine only ever
+# looks at /releases/latest, which never returns a draft, so pushing a tag builds the artifacts
+# automatically but a human still reviews/writes release notes and clicks "Publish" before any
+# self-hosted install sees it.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve and verify version
+        id: version
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          DEFINED="$(sed -n "s/.*LEANKS_VERSION', '\([^']*\)'.*/\1/p" user/plugins/leanks/includes/version.php | head -n1)"
+          if [ "$VERSION" != "$DEFINED" ]; then
+            echo "::error::Tag $TAG (version $VERSION) does not match LEANKS_VERSION ($DEFINED) in user/plugins/leanks/includes/version.php"
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build release archive, manifest and checksum
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          STAGE="$RUNNER_TEMP/stage"
+          mkdir -p "$STAGE"
+
+          # Every file tracked in git, minus the release-engineering directory itself -- nothing
+          # gitignored (user/config.php, user/leanks-updates/) can appear here since it's not tracked.
+          git ls-files | grep -v '^\.github/' > "$RUNNER_TEMP/manifest.txt"
+
+          while IFS= read -r f; do
+            mkdir -p "$STAGE/$(dirname "$f")"
+            cp "$f" "$STAGE/$f"
+          done < "$RUNNER_TEMP/manifest.txt"
+
+          # Zip contents at the archive root (no wrapping folder) -- the update engine extracts
+          # this directly over the install root.
+          (cd "$STAGE" && zip -r -X -q "$GITHUB_WORKSPACE/leanks-$VERSION.zip" .)
+
+          jq -R -s 'split("\n") | map(select(length > 0))' "$RUNNER_TEMP/manifest.txt" > "leanks-$VERSION.manifest.json"
+
+          sha256sum "leanks-$VERSION.zip" | awk '{print $1}' > "leanks-$VERSION.sha256"
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Leanks v${{ steps.version.outputs.version }}
+          draft: true
+          files: |
+            leanks-${{ steps.version.outputs.version }}.zip
+            leanks-${{ steps.version.outputs.version }}.manifest.json
+            leanks-${{ steps.version.outputs.version }}.sha256

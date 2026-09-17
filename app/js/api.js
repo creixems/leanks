@@ -77,6 +77,24 @@ const Api = (function () {
       return call('delete', { id: row.keyword, keyword: row.keyword, nonce: row.nonce_delete }, 'POST');
     },
 
+    async checkUpdate() {
+      return call('leanks_check_update');
+    },
+
+    async runUpdate() {
+      const b = await this.bootstrap();
+      return call('leanks_run_update', { nonce: b.nonce_update }, 'POST');
+    },
+
+    async listBackups() {
+      return call('leanks_list_backups');
+    },
+
+    async restoreBackup(file) {
+      const b = await this.bootstrap();
+      return call('leanks_restore_backup', { file, nonce: b.nonce_update }, 'POST');
+    },
+
     async importCsv(file) {
       const b = await this.bootstrap();
       const url = new URL(AJAX_URL, window.location.href);

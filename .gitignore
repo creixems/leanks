@@ -1,6 +1,9 @@
 # Site-specific config (created by /setup or copied from user/config-sample.php)
 /user/config.php
 
+# Update engine's working directory (downloads, extraction, backups)
+/user/leanks-updates/
+
 # OS / editor cruft
 .DS_Store
 Thumbs.db

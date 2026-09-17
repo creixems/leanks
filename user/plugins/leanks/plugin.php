@@ -1,20 +1,23 @@
 <?php
 /*
 Plugin Name: Leanks
-Plugin URI: https://github.com/jaimecreixems/leanks
+Plugin URI: https://github.com/creixems/leanks
 Description: Powers the Leanks dashboard (/app): password-protected links, link expiration & click limits, and UTM metadata on top of stock YOURLS. Required for the custom Leanks admin UI to work.
-Version: 1.0.0
+Version: 1.1.0
 Author: Leanks
-Author URI: https://github.com/jaimecreixems/leanks
+Author URI: https://github.com/creixems/leanks
 */
 
 // No direct call
 if ( !defined( 'YOURLS_ABSPATH' ) ) die();
 
+require_once __DIR__ . '/includes/version.php';
+require_once __DIR__ . '/includes/migrations.php';
 require_once __DIR__ . '/includes/meta.php';
 require_once __DIR__ . '/includes/redirect-gate.php';
 require_once __DIR__ . '/includes/ajax.php';
 require_once __DIR__ . '/includes/import.php';
+require_once __DIR__ . '/includes/update.php';
 
 // Point back to the Leanks dashboard from the stock YOURLS admin menu, for discoverability.
 yourls_add_action( 'admin_menu', 'leanks_add_admin_menu_link' );

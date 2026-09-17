@@ -15,8 +15,8 @@ function leanks_json( $data ) {
     die();
 }
 
-function leanks_verify_nonce_json( $nonce ) {
-    yourls_verify_nonce( LEANKS_NONCE_ACTION, $nonce, false, json_encode( [ 'success' => false, 'message' => 'Invalid or expired nonce' ] ) );
+function leanks_verify_nonce_json( $nonce, $action = LEANKS_NONCE_ACTION ) {
+    yourls_verify_nonce( $action, $nonce, false, json_encode( [ 'success' => false, 'message' => 'Invalid or expired nonce' ] ) );
 }
 
 /**
@@ -27,9 +27,11 @@ function leanks_ajax_bootstrap() {
         'nonce_add'       => yourls_create_nonce( 'add_url' ),
         'nonce_meta'      => yourls_create_nonce( LEANKS_NONCE_ACTION ),
         'nonce_import'    => yourls_create_nonce( LEANKS_NONCE_ACTION ),
+        'nonce_update'    => yourls_create_nonce( 'leanks_run_update' ),
         'site_url'        => yourls_get_yourls_site(),
         'user'            => defined( 'YOURLS_USER' ) ? YOURLS_USER : '',
         'url_convert'     => yourls_get_url_convert(),
+        'leanks_version'  => LEANKS_VERSION,
     ] );
 }
 yourls_add_action( 'yourls_ajax_leanks_bootstrap', 'leanks_ajax_bootstrap' );

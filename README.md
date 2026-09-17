@@ -1,6 +1,6 @@
 # Leanks
 
-A self-hosted URL shortener with a [dub.co](https://dub.co)-style dashboard, built on top of
+A self-hosted URL shortener with a modern, SaaS-style dashboard, built on top of
 [YOURLS](https://yourls.org) so it runs on ordinary PHP/MySQL shared hosting -- no Node build
 step, no Docker, no serverless platform required.
 
@@ -17,8 +17,10 @@ Leanks is YOURLS underneath (redirect engine, database, click tracking) with:
 - **QR codes** -- generated client-side for any link, downloadable as PNG.
 - Click analytics (powered by YOURLS' own tracking): totals, a 30-day chart, top referrers, top
   countries.
-- **CSV import** -- migrate links from dub.co (or anywhere else) via its CSV export/import format,
-  with column auto-detection, duplicate/error reporting, and original creation dates preserved.
+- **CSV import** -- migrate links from another shortener via CSV, with column auto-detection,
+  duplicate/error reporting, and original creation dates preserved.
+- **One-click updates** -- the dashboard notices new releases and applies them in place, with an
+  automatic backup and checksum verification before anything is touched.
 
 ## Why YOURLS underneath
 
@@ -28,9 +30,8 @@ completely stock (redirect logic, database schema, click tracking, plugin API) a
 plugin (`user/plugins/leanks`) plus an entirely custom front end (`app/`) on top, rather than
 patching YOURLS' own files. That means YOURLS itself stays upgradeable in place.
 
-The dashboard's visual design is inspired by dub.co -- studied and rebuilt from scratch in plain
-CSS, not copied from their (closed-stack, Next.js/React/Tailwind) source, which shares nothing
-with this project's vanilla PHP/JS stack.
+The dashboard's visual design is original -- a modern, SaaS-style interface built from scratch in
+plain CSS, replacing YOURLS' classic PHP admin panel look without touching YOURLS itself.
 
 ## Requirements
 
@@ -61,7 +62,7 @@ admin/                 Stock YOURLS admin (kept as a fallback/power-user UI)
 app/                    The Leanks dashboard (vanilla HTML/CSS/JS)
   auth.php              Thin JSON bridge into YOURLS' own login/session
   index.html, login.html
-  css/app.css            Design system (dub.co-inspired)
+  css/app.css            Design system (modern SaaS style)
   js/app.js, api.js, login.js
   js/vendor/qrcode.js     Vendored QR code generator (MIT, see licenses/)
 includes/               Stock YOURLS core (untouched)
@@ -90,11 +91,35 @@ actions the plugin registers on the same endpoint for listing, stats, metadata, 
 `user/plugins/leanks/includes/import.php` parses the uploaded file server-side with PHP's own CSV
 parser and auto-detects columns by matching common header aliases (`url`/`destination url`,
 `short link`/`key`/`slug`, `title`/`name`, `creation date`/`created at`, etc.) case-insensitively --
-it doesn't require exact header names, matching dub.co's own note that "the actual names of your
-columns can be anything you want". Each row is created through the same `yourls_add_new_link()`
+it doesn't require exact header names, so column order and naming don't need to match exactly.
+Each row is created through the same `yourls_add_new_link()`
 YOURLS itself uses, so duplicate URLs/keywords are caught the normal way and reported back per-row
 rather than aborting the whole import; a supplied creation date is applied afterwards. Files over
 2000 rows are processed in the first batch only -- re-upload the remainder in a second pass.
+
+### Updating
+
+`user/plugins/leanks/includes/update.php` polls `https://api.github.com/repos/creixems/leanks/releases/latest`
+(throttled to once every 24h) and shows a dashboard banner when a newer version is published.
+Clicking **Update now** downloads that release's zip, verifies it against the checksum published
+alongside it, backs up every file about to change, then applies the diff between the previous and
+new release manifests (added/changed files are written, files removed upstream are deleted).
+Nothing is applied until the checksum check passes and the backup succeeds; if applying the update
+itself fails partway through, it's rolled back from that backup automatically. Past backups are
+listed in the update modal with a manual **Restore** action, and the 3 most recent are kept.
+
+Two things are deliberately never touched by an automated update: `user/config.php` (never part of
+any release) and `.htaccess` (skipped if it differs from the shipped version, with the new version
+saved to `user/leanks-updates/htaccess.new` for you to merge by hand) -- so a customized rewrite
+config or local site settings are never silently overwritten. This requires the `ZipArchive` PHP
+extension; hosts without it get a clear message instead of a broken update.
+
+Releases are built by [`.github/workflows/release.yml`](.github/workflows/release.yml): pushing a
+`vX.Y.Z` tag (after bumping `LEANKS_VERSION` in
+[`version.php`](user/plugins/leanks/includes/version.php) to match) builds a zip of every
+git-tracked file, a `manifest.json` of that file list, and a `sha256` checksum, and attaches them
+to a **draft** GitHub release. Drafts are invisible to `/releases/latest`, so publishing is a
+separate, deliberate step after writing release notes.
 
 ## Local development
 

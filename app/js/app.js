@@ -20,6 +20,7 @@
     $('#f-keyword-domain').textContent = '(' + boot.site_url.replace(/^https?:\/\//, '') + '/)';
     bindEvents();
     loadLinks();
+    checkForUpdate();
   }
 
   // ---------- toasts ----------
@@ -169,6 +170,15 @@
     $('#qr-download').addEventListener('click', downloadQr);
 
     $('#import-btn').addEventListener('click', openImport);
+
+    $('#update-banner-view').addEventListener('click', () => {
+      if (latestUpdateInfo && latestUpdateInfo.html_url) window.open(latestUpdateInfo.html_url, '_blank', 'noopener');
+    });
+    $('#update-banner-update').addEventListener('click', openUpdateModal);
+    $('#update-banner-dismiss').addEventListener('click', () => {
+      if (latestUpdateInfo) localStorage.setItem('leanks-update-dismissed', latestUpdateInfo.latest);
+      $('#update-banner').classList.add('hidden');
+    });
   }
 
   function resetForm() {
@@ -364,6 +374,119 @@
       toast(err.message || 'Import failed', true);
       submitBtn.disabled = false;
       submitBtn.textContent = 'Import';
+    }
+  }
+
+  // ---------- update engine ----------
+  let latestUpdateInfo = null;
+
+  async function checkForUpdate() {
+    try {
+      const info = await Api.checkUpdate();
+      if (!info || !info.update_available) return;
+      latestUpdateInfo = info;
+      if (localStorage.getItem('leanks-update-dismissed') === info.latest) return;
+      $('#update-banner-text').textContent = `Leanks v${info.latest} is available (you're on v${info.current}).`;
+      $('#update-banner').classList.remove('hidden');
+    } catch (e) {
+      // A flaky GitHub API must never break the dashboard -- fail silently.
+    }
+  }
+
+  function openUpdateModal() {
+    renderUpdatePreview();
+    openModal('update-modal-backdrop');
+    Api.listBackups().then((data) => renderBackupsList(data.backups || [])).catch(() => renderBackupsList([]));
+  }
+
+  function renderUpdatePreview() {
+    const info = latestUpdateInfo;
+    $('#update-modal-title').textContent = info ? `Update to v${info.latest}` : 'Update Leanks';
+    $('#update-body').innerHTML = `
+      ${info ? `<p style="font-size:0.85rem;color:var(--text-dim);margin-top:0;">You're on v${escHtml(info.current)}. This downloads v${escHtml(info.latest)}, verifies its checksum, backs up the files it's about to change, then applies it in place.</p>` : ''}
+      ${info && info.changelog ? '<div class="section-label">What\'s new</div><pre class="update-changelog">' + escHtml(info.changelog) + '</pre>' : ''}
+      <div id="update-result"></div>
+      <div class="section-label">Backups</div>
+      <div id="update-backups-list" class="mini-list"><div class="mini-row"><span>Loading…</span></div></div>`;
+    $('#update-footer').innerHTML = `
+      <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+      <button type="button" class="btn btn-primary" id="update-confirm">Update now</button>`;
+    $('#update-confirm').addEventListener('click', onConfirmUpdate);
+  }
+
+  function formatBytes(n) {
+    if (!n) return '0 KB';
+    const kb = n / 1024;
+    return kb < 1024 ? `${kb.toFixed(0)} KB` : `${(kb / 1024).toFixed(1)} MB`;
+  }
+
+  function renderBackupsList(backups) {
+    const el = $('#update-backups-list');
+    if (!el) return;
+    if (!backups.length) {
+      el.innerHTML = '<div class="mini-row"><span>No backups yet</span></div>';
+      return;
+    }
+    el.innerHTML = backups.map((b) => `
+      <div class="mini-row">
+        <span>${escHtml(b.created)} · ${formatBytes(b.size)}</span>
+        <button type="button" class="btn btn-ghost btn-sm" data-restore="${escAttr(b.file)}">Restore</button>
+      </div>`).join('');
+    el.querySelectorAll('[data-restore]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.confirming) {
+          onRestoreBackup(btn.dataset.restore, btn);
+        } else {
+          btn.dataset.confirming = '1';
+          btn.textContent = 'Confirm?';
+          setTimeout(() => { delete btn.dataset.confirming; btn.textContent = 'Restore'; }, 3000);
+        }
+      });
+    });
+  }
+
+  async function onRestoreBackup(file, btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+    try {
+      const res = await Api.restoreBackup(file);
+      if (!res.success) throw new Error(res.message || 'Restore failed');
+      toast('Backup restored — reloading…');
+      setTimeout(() => window.location.reload(), 800);
+    } catch (err) {
+      toast(err.message || 'Restore failed', true);
+      btn.disabled = false;
+      btn.textContent = 'Restore';
+    }
+  }
+
+  async function onConfirmUpdate() {
+    const btn = $('#update-confirm');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+    $('#update-result').innerHTML = '<p style="font-size:0.85rem;color:var(--text-dim);">Downloading, verifying and applying the update…</p>';
+
+    try {
+      const res = await Api.runUpdate();
+      if (!res.success) throw new Error(res.message || 'Update failed');
+
+      $('#update-result').innerHTML = `
+        <div class="stat-row" style="margin-bottom:14px;">
+          <div class="stat-card"><div class="stat-label">Updated</div><div class="stat-value">${res.updated}</div></div>
+          <div class="stat-card"><div class="stat-label">Added</div><div class="stat-value">${res.added}</div></div>
+          <div class="stat-card"><div class="stat-label">Removed</div><div class="stat-value">${res.removed}</div></div>
+        </div>
+        <p style="font-size:0.85rem;color:var(--text-dim);">Updated from v${escHtml(res.from_version)} to v${escHtml(res.to_version)} in ${res.duration}s. A backup was saved as <code>${escHtml(res.backup)}</code>.</p>
+        ${res.htaccess_note ? '<div class="badge badge-amber" style="margin-bottom:10px;">' + escHtml(res.htaccess_note) + '</div>' : ''}`;
+      $('#update-footer').innerHTML = '<button type="button" class="btn btn-primary" id="update-reload">Reload dashboard</button>';
+      $('#update-reload').addEventListener('click', () => window.location.reload());
+      $('#update-banner').classList.add('hidden');
+      toast(`Updated to v${res.to_version}`);
+    } catch (err) {
+      $('#update-result').innerHTML = '';
+      toast(err.message || 'Update failed', true);
+      btn.disabled = false;
+      btn.textContent = 'Update now';
     }
   }
 
