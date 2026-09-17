@@ -76,5 +76,22 @@ const Api = (function () {
     async deleteLink(row) {
       return call('delete', { id: row.keyword, keyword: row.keyword, nonce: row.nonce_delete }, 'POST');
     },
+
+    async importCsv(file) {
+      const b = await this.bootstrap();
+      const url = new URL(AJAX_URL, window.location.href);
+      const body = new FormData();
+      body.append('action', 'leanks_import');
+      body.append('nonce', b.nonce_import);
+      body.append('csv', file);
+
+      const res = await fetch(url, { method: 'POST', credentials: 'same-origin', body });
+      const text = await res.text();
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        throw new Error('Unexpected server response');
+      }
+    },
   };
 })();

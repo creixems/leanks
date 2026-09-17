@@ -26,6 +26,7 @@ function leanks_ajax_bootstrap() {
     leanks_json( [
         'nonce_add'       => yourls_create_nonce( 'add_url' ),
         'nonce_meta'      => yourls_create_nonce( LEANKS_NONCE_ACTION ),
+        'nonce_import'    => yourls_create_nonce( LEANKS_NONCE_ACTION ),
         'site_url'        => yourls_get_yourls_site(),
         'user'            => defined( 'YOURLS_USER' ) ? YOURLS_USER : '',
         'url_convert'     => yourls_get_url_convert(),

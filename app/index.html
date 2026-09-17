@@ -16,6 +16,7 @@
     <input type="search" id="search-input" placeholder="Search links...">
   </div>
   <div class="topbar-spacer"></div>
+  <button class="btn btn-secondary" id="import-btn">Import CSV</button>
   <button class="btn btn-primary" id="create-btn">+ Create link</button>
   <div class="user-menu">
     <span id="current-user"></span>
@@ -123,6 +124,18 @@
         <button type="submit" class="btn btn-primary" id="link-form-submit">Create link</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Import CSV modal -->
+<div class="modal-backdrop hidden" id="import-modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Import from CSV</h2>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <div id="import-body"></div>
+    <div class="modal-footer" id="import-footer"></div>
   </div>
 </div>
 

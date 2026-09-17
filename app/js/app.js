@@ -35,10 +35,11 @@
   function openModal(id) { $('#' + id).classList.remove('hidden'); }
   function closeModal(id) { $('#' + id).classList.add('hidden'); }
 
-  $$('[data-close]').forEach((btn) => {
-    btn.addEventListener('click', () => {
+  // Delegated so it also covers buttons injected later (e.g. the import modal's dynamic footer).
+  document.body.addEventListener('click', (e) => {
+    if (e.target.closest('[data-close]')) {
       $$('.modal-backdrop').forEach((m) => m.classList.add('hidden'));
-    });
+    }
   });
   $$('.modal-backdrop').forEach((backdrop) => {
     backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.classList.add('hidden'); });
@@ -166,6 +167,8 @@
     $('#link-form').addEventListener('submit', onSubmitLinkForm);
     $('#confirm-delete-btn').addEventListener('click', onConfirmDelete);
     $('#qr-download').addEventListener('click', downloadQr);
+
+    $('#import-btn').addEventListener('click', openImport);
   }
 
   function resetForm() {
@@ -305,6 +308,62 @@
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = originalLabel;
+    }
+  }
+
+  // ---------- import CSV ----------
+  const IMPORT_MAX_ROWS = 2000; // keep in sync with LEANKS_IMPORT_MAX_ROWS in the plugin's import.php
+
+  function importModalForm() {
+    $('#import-body').innerHTML = `
+      <p style="font-size:0.85rem;color:var(--text-dim);margin-top:0;">
+        Works with dub.co's own CSV export/import format (Destination URL, Short link, Title,
+        Creation date) -- or any CSV with similarly named columns.
+      </p>
+      <div class="field">
+        <label for="import-file">CSV file</label>
+        <input type="file" id="import-file" accept=".csv,text/csv">
+      </div>`;
+    $('#import-footer').innerHTML = `
+      <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+      <button type="button" class="btn btn-primary" id="import-submit">Import</button>`;
+    $('#import-submit').addEventListener('click', onSubmitImport);
+  }
+
+  function openImport() {
+    importModalForm();
+    openModal('import-modal-backdrop');
+  }
+
+  async function onSubmitImport() {
+    const file = $('#import-file').files[0];
+    if (!file) { toast('Choose a CSV file first', true); return; }
+
+    const submitBtn = $('#import-submit');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      const res = await Api.importCsv(file);
+      if (!res.success) throw new Error(res.message || 'Import failed');
+
+      const errorRows = (res.errors || []).map((e) => `<div class="mini-row"><span>Row ${e.row}${e.url ? ' · ' + escHtml(e.url) : ''}</span><span style="color:var(--red);">${escHtml(e.message)}</span></div>`).join('');
+
+      $('#import-body').innerHTML = `
+        <div class="stat-row" style="margin-bottom:14px;">
+          <div class="stat-card"><div class="stat-label">Imported</div><div class="stat-value" style="color:var(--green);">${res.imported}</div></div>
+          <div class="stat-card"><div class="stat-label">Skipped</div><div class="stat-value" style="color:${res.skipped ? 'var(--red)' : 'var(--text)'};">${res.skipped}</div></div>
+        </div>
+        ${res.truncated ? `<div class="badge badge-amber" style="margin-bottom:10px;">File has more than ${IMPORT_MAX_ROWS} rows -- only the first batch was imported. Re-upload the rest in a second pass.</div>` : ''}
+        ${errorRows ? '<div class="section-label">Skipped rows</div><div class="mini-list">' + errorRows + '</div>' : ''}`;
+      $('#import-footer').innerHTML = '<button type="button" class="btn btn-primary" data-close id="import-done">Done</button>';
+      $('#import-done').addEventListener('click', () => { closeModal('import-modal-backdrop'); loadLinks(); });
+
+      if (res.imported > 0) toast(`Imported ${res.imported} link${res.imported === 1 ? '' : 's'}`);
+    } catch (err) {
+      toast(err.message || 'Import failed', true);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Import';
     }
   }
 

@@ -4,8 +4,8 @@ A self-hosted URL shortener with a [dub.co](https://dub.co)-style dashboard, bui
 [YOURLS](https://yourls.org) so it runs on ordinary PHP/MySQL shared hosting -- no Node build
 step, no Docker, no serverless platform required.
 
-![Leanks dashboard](docs/screenshots/dashboard.png)
-![Create link modal with password protection and UTM tags](docs/screenshots/create-link-modal.png)
+![Leanks dashboard](.github/screenshots/dashboard.png)
+![Create link modal with password protection and UTM tags](.github/screenshots/create-link-modal.png)
 
 Leanks is YOURLS underneath (redirect engine, database, click tracking) with:
 
@@ -17,6 +17,8 @@ Leanks is YOURLS underneath (redirect engine, database, click tracking) with:
 - **QR codes** -- generated client-side for any link, downloadable as PNG.
 - Click analytics (powered by YOURLS' own tracking): totals, a 30-day chart, top referrers, top
   countries.
+- **CSV import** -- migrate links from dub.co (or anywhere else) via its CSV export/import format,
+  with column auto-detection, duplicate/error reporting, and original creation dates preserved.
 
 ## Why YOURLS underneath
 
@@ -81,7 +83,18 @@ YOURLS.
 
 The dashboard talks to YOURLS' existing `admin-ajax.php` for link create/edit/delete (reusing its
 built-in nonce-based CSRF protection and session auth), plus a handful of custom `leanks_*`
-actions the plugin registers on the same endpoint for listing, stats, and metadata.
+actions the plugin registers on the same endpoint for listing, stats, metadata, and CSV import.
+
+### CSV import
+
+`user/plugins/leanks/includes/import.php` parses the uploaded file server-side with PHP's own CSV
+parser and auto-detects columns by matching common header aliases (`url`/`destination url`,
+`short link`/`key`/`slug`, `title`/`name`, `creation date`/`created at`, etc.) case-insensitively --
+it doesn't require exact header names, matching dub.co's own note that "the actual names of your
+columns can be anything you want". Each row is created through the same `yourls_add_new_link()`
+YOURLS itself uses, so duplicate URLs/keywords are caught the normal way and reported back per-row
+rather than aborting the whole import; a supplied creation date is applied afterwards. Files over
+2000 rows are processed in the first batch only -- re-upload the remainder in a second pass.
 
 ## Local development
 
