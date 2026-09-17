@@ -4,6 +4,9 @@ A self-hosted URL shortener with a [dub.co](https://dub.co)-style dashboard, bui
 [YOURLS](https://yourls.org) so it runs on ordinary PHP/MySQL shared hosting -- no Node build
 step, no Docker, no serverless platform required.
 
+![Leanks dashboard](docs/screenshots/dashboard.png)
+![Create link modal with password protection and UTM tags](docs/screenshots/create-link-modal.png)
+
 Leanks is YOURLS underneath (redirect engine, database, click tracking) with:
 
 - A custom dashboard (vanilla HTML/CSS/JS, no framework) that looks and feels like a modern SaaS
