@@ -61,16 +61,43 @@ function leanks_setup_friendly_db_error( \Throwable $e ) {
 
 /**
  * yourls_create_sql_tables() (stock YOURLS, includes/functions-install.php) returns only a
- * fixed set of plain-English messages with no further detail. "Could not insert sample short
- * URLs" specifically is almost always a missing INSERT privilege -- table creation only needs
- * CREATE, so it's easy to grant just enough privileges in cPanel for tables to appear but not
- * enough to actually write rows.
+ * fixed set of plain-English messages with no further detail -- "Could not insert sample short
+ * URLs" is a single bitwise-AND of three separate yourls_add_new_link() calls, with no way to
+ * tell which one(s) actually failed or why. Find out for real: check which of the three fixed
+ * sample keywords are missing, then retry just those through yourls_add_new_link() again to
+ * capture its actual per-link message (already exists / reserved / DB error / etc) instead of
+ * guessing at a single cause.
  */
+function leanks_setup_diagnose_sample_links() {
+    $samples = [
+        'yourlsblog' => [ 'https://blog.yourls.org/', 'YOURLS\' Blog' ],
+        'yourls'     => [ 'https://yourls.org/', 'YOURLS: Your Own URL Shortener' ],
+        'ozh'        => [ 'https://ozh.org/', 'ozh.org' ],
+    ];
+
+    $table = YOURLS_DB_TABLE_URL;
+    $existing = yourls_get_db( 'read-leanks_setup_diagnose' )->fetchAll(
+        "SELECT `keyword` FROM `$table` WHERE `keyword` IN ('yourlsblog', 'yourls', 'ozh')"
+    );
+    $existing_keywords = array_column( $existing, 'keyword' );
+
+    $reasons = [];
+    foreach ( $samples as $keyword => [ $url, $title ] ) {
+        if ( in_array( $keyword, $existing_keywords, true ) ) {
+            continue;
+        }
+        $result = yourls_add_new_link( $url, $keyword, $title );
+        $reasons[] = $keyword . ': ' . ( $result['message'] ?? 'unknown error' );
+    }
+    return $reasons;
+}
+
 function leanks_setup_friendly_install_error( $message ) {
     if ( $message === 'Could not insert sample short URLs' ) {
-        return $message . ' -- this usually means the database user is missing the INSERT privilege. '
-            . 'In cPanel: MySQL Databases -> Add User to Database -> make sure ALL PRIVILEGES is checked '
-            . 'for this user on this database, then submit this form again.';
+        $reasons = leanks_setup_diagnose_sample_links();
+        if ( !empty( $reasons ) ) {
+            return $message . ' -- ' . implode( '; ', $reasons );
+        }
     }
     return $message;
 }
@@ -151,10 +178,13 @@ if ( $_SERVER['REQUEST_METHOD'] === 'POST' && !$already_installed ) {
         // point with existing data is a previous attempt through this same wizard that got partway
         // through before failing later (it refuses to run at all once user/config.php exists), so
         // it's safe to clear these tables and let this attempt create everything fresh.
+        // DELETE rather than TRUNCATE on purpose: TRUNCATE requires the DROP privilege (it's
+        // implemented as a drop-and-recreate), which is easy to leave unchecked even when
+        // granting otherwise-broad access in cPanel. DELETE only needs DELETE.
         if ( empty( $errors ) && isset( $pdo ) ) {
             foreach ( [ 'url', 'options', 'log' ] as $suffix ) {
                 try {
-                    $pdo->exec( 'TRUNCATE TABLE `' . $values['db_prefix'] . $suffix . '`' );
+                    $pdo->exec( 'DELETE FROM `' . $values['db_prefix'] . $suffix . '`' );
                 } catch ( \PDOException $e ) {
                     // Table doesn't exist yet on a genuinely fresh database -- nothing to clean up.
                 }
