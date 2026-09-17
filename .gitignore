@@ -1,0 +1,12 @@
+# Site-specific config (created by /setup or copied from user/config-sample.php)
+/user/config.php
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Logs
+*.log

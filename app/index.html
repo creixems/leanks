@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Leanks</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo"><span class="logo-mark">L</span> Leanks</div>
+  <div class="topbar-search search-box">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input type="search" id="search-input" placeholder="Search links...">
+  </div>
+  <div class="topbar-spacer"></div>
+  <button class="btn btn-primary" id="create-btn">+ Create link</button>
+  <div class="user-menu">
+    <span id="current-user"></span>
+    <button class="btn btn-ghost btn-sm" id="logout-btn">Log out</button>
+  </div>
+</div>
+
+<main class="container">
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-label">Total links</div>
+      <div class="stat-value" id="stat-total-links">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total clicks</div>
+      <div class="stat-value" id="stat-total-clicks">–</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <table class="links-table">
+      <thead>
+        <tr>
+          <th>Link</th>
+          <th>Clicks</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="links-tbody">
+        <tr><td colspan="4" style="padding:24px;"><div class="skeleton" style="height:40px;"></div></td></tr>
+      </tbody>
+    </table>
+    <div id="empty-state" class="empty-state hidden">
+      <h3>No links yet</h3>
+      <p>Create your first short link to get started.</p>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</main>
+
+<!-- Create / Edit modal -->
+<div class="modal-backdrop hidden" id="link-modal-backdrop">
+  <div class="modal modal-wide">
+    <div class="modal-header">
+      <h2 id="link-modal-title">Create link</h2>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <form id="link-form">
+      <div class="field">
+        <label for="f-url">Destination URL</label>
+        <input type="url" id="f-url" name="url" placeholder="https://example.com/page" required>
+      </div>
+      <div class="input-row">
+        <div class="field">
+          <label for="f-keyword">Short link <span id="f-keyword-domain" style="font-weight:400;color:var(--text-faint);"></span></label>
+          <input type="text" id="f-keyword" name="keyword" placeholder="(auto-generated)">
+        </div>
+        <div class="field">
+          <label for="f-title">Title <span style="font-weight:400;color:var(--text-faint);">(optional)</span></label>
+          <input type="text" id="f-title" name="title" placeholder="My link">
+        </div>
+      </div>
+
+      <details class="advanced" id="advanced-section">
+        <summary>▸ Advanced options (password, expiration, UTM tags)</summary>
+
+        <div class="section-label">Password protection</div>
+        <div class="toggle-row">
+          <span style="font-size:0.85rem;">Require a password to open this link</span>
+          <label class="switch"><input type="checkbox" id="f-password-toggle"><span class="track"></span></label>
+        </div>
+        <div class="field hidden" id="f-password-wrap">
+          <input type="password" id="f-password" placeholder="Password" autocomplete="new-password">
+        </div>
+
+        <div class="section-label">Expiration</div>
+        <div class="input-row">
+          <div class="field">
+            <label for="f-expires">Expires at <span style="font-weight:400;color:var(--text-faint);">(optional)</span></label>
+            <input type="datetime-local" id="f-expires">
+          </div>
+          <div class="field">
+            <label for="f-max-clicks">Max clicks <span style="font-weight:400;color:var(--text-faint);">(optional)</span></label>
+            <input type="number" id="f-max-clicks" min="1" placeholder="e.g. 100">
+          </div>
+        </div>
+
+        <div class="section-label">UTM campaign tags</div>
+        <div class="input-row">
+          <div class="field"><label for="f-utm-source">Source</label><input type="text" id="f-utm-source" placeholder="newsletter"></div>
+          <div class="field"><label for="f-utm-medium">Medium</label><input type="text" id="f-utm-medium" placeholder="email"></div>
+        </div>
+        <div class="input-row">
+          <div class="field"><label for="f-utm-campaign">Campaign</label><input type="text" id="f-utm-campaign" placeholder="spring-sale"></div>
+          <div class="field"><label for="f-utm-term">Term</label><input type="text" id="f-utm-term" placeholder=""></div>
+        </div>
+        <div class="field"><label for="f-utm-content">Content</label><input type="text" id="f-utm-content" placeholder=""></div>
+
+        <div class="preview-url" id="utm-preview" style="display:none;"></div>
+      </details>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary" id="link-form-submit">Create link</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Stats modal -->
+<div class="modal-backdrop hidden" id="stats-modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="stats-modal-title">Stats</h2>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <div id="stats-body">Loading…</div>
+    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-close>Close</button></div>
+  </div>
+</div>
+
+<!-- QR modal -->
+<div class="modal-backdrop hidden" id="qr-modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>QR code</h2>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <div class="qr-wrap">
+      <div id="qr-canvas-holder"></div>
+      <button class="btn btn-secondary" id="qr-download">Download PNG</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirm -->
+<div class="modal-backdrop hidden" id="delete-modal-backdrop">
+  <div class="modal">
+    <div class="modal-header"><h2>Delete link?</h2><button class="modal-close" data-close>&times;</button></div>
+    <p style="font-size:0.88rem;color:var(--text-dim);">This can't be undone. The short link will stop working immediately.</p>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+      <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toast-stack"></div>
+
+<script src="js/vendor/qrcode.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

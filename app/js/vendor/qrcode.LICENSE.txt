@@ -1,0 +1,4 @@
+qrcode.js -- https://github.com/davidshimjs/qrcodejs
+Copyright (c) 2012 davidshimjs
+Underlying QR encoding: Copyright (c) 2009 Kazuhiko Arase, http://www.d-project.com/
+MIT License. See project LICENSE.md in Leanks' licenses/ folder or the repo above for full text.

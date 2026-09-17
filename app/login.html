@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Log in · Leanks</title>
+<link rel="stylesheet" href="css/app.css">
+<style>
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .login-card {
+    width: 100%; max-width: 340px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 32px 28px; box-shadow: var(--shadow);
+  }
+  .login-logo { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 22px; font-weight: 700; font-size: 1.1rem; }
+  .login-error {
+    background: var(--red-bg); color: var(--red); font-size: 0.82rem; padding: 8px 12px;
+    border-radius: 8px; margin-bottom: 14px; display: none;
+  }
+  .login-submit { width: 100%; margin-top: 6px; }
+</style>
+</head>
+<body>
+  <form class="login-card" id="login-form" autocomplete="on">
+    <div class="login-logo"><span class="logo-mark">L</span> Leanks</div>
+    <div class="login-error" id="login-error"></div>
+    <div class="field">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" autocomplete="username" required autofocus>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="btn btn-primary login-submit" id="login-submit">Log in</button>
+  </form>
+  <script src="js/login.js"></script>
+</body>
+</html>

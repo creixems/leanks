@@ -1,0 +1,236 @@
+<?php
+
+/**
+ * Define the YOURLS config
+ */
+
+namespace YOURLS\Config;
+
+use YOURLS\Exceptions\ConfigException;
+
+class Config {
+
+    /**
+     * @var string
+     */
+    protected string $root;
+
+    /**
+     * @var string
+     */
+    protected string $config;
+
+    /**
+     * Constants that must be defined in config.php
+     */
+    protected const MANDATORY_CONSTANTS = [
+        'YOURLS_DB_USER',
+        'YOURLS_DB_PASS',
+        'YOURLS_DB_NAME',
+        'YOURLS_DB_HOST',
+        'YOURLS_DB_PREFIX',
+        'YOURLS_SITE',
+    ];
+
+    /**
+     * Publicly known values that are not acceptable for YOURLS_COOKIEKEY
+     */
+    protected const INVALID_COOKIEKEYS = [
+        '',
+        'modify this text with something random', // default value in config-sample.php
+        'qQ4KhL_pu|s@Zm7n#%:b^{A[vhm',            // suggested value in the documentation
+    ];
+
+
+
+    /**
+     * @since  1.7.3
+     * @param string $config Optional user defined config path
+     */
+    public function __construct(string $config = '') {
+        $this->set_root( $this->fix_win32_path(dirname(__DIR__, 2)) );
+        $this->set_config($config);
+    }
+
+    /**
+     * Convert backslashes to slashes
+     *
+     * @since  1.7.3
+     * @param string $path
+     * @return string  path with \ converted to /
+     */
+    public function fix_win32_path(string $path): string {
+        return str_replace('\\', '/', $path);
+    }
+
+    /**
+     * @since  1.7.3
+     * @param string $config path to config file
+     * @return void
+     */
+    public function set_config(string $config): void {
+        $this->config = $config;
+    }
+
+    /**
+     * @since  1.7.3
+     * @param string $root path to YOURLS root directory
+     * @return void
+     */
+    public function set_root(string $root): void {
+        $this->root = $root;
+    }
+
+    /**
+     * Find config.php, either user defined or from standard location
+     *
+     * @since  1.7.3
+     * @return string         path to found config file
+     * @throws ConfigException
+     */
+    public function find_config(): string {
+
+        $config = $this->fix_win32_path($this->config);
+
+        if (!empty($config) && is_readable($config)) {
+            return $config;
+        }
+
+        if (!empty($config) && !is_readable($config)) {
+            throw new ConfigException("User defined config not found at '$config'");
+        }
+
+        // config.php in /user/
+        if (file_exists($this->root . '/user/config.php')) {
+            return $this->root . '/user/config.php';
+        }
+
+        // config.php in /includes/
+        if (file_exists($this->root . '/includes/config.php')) {
+            return $this->root . '/includes/config.php';
+        }
+
+        // config.php not found :(
+
+        throw new ConfigException('Cannot find config.php. Please read the readme.html to learn how to install YOURLS');
+    }
+
+    /**
+     * Check that all mandatory constants are defined
+     *
+     * @since  1.10.5
+     * @param string[] $must_haves Constant names to check, defaults to self::MANDATORY_CONSTANTS
+     * @return void
+     * @throws ConfigException
+     */
+    public function check_mandatory_constants(array $must_haves = self::MANDATORY_CONSTANTS): void {
+        foreach ($must_haves as $must_have) {
+            if (!defined($must_have)) {
+                throw new ConfigException('Config is incomplete (missing at least '.$must_have.') Check config-sample.php and edit your config accordingly');
+            }
+        }
+    }
+
+    /**
+     * Check that the cookie key is defined and is not a publicly known value
+     *
+     * @since  1.10.5
+     * @param mixed $key Cookie key value, or null if the constant is undefined
+     * @return void
+     * @throws ConfigException
+     */
+    public function check_cookie_key(mixed $key): void {
+        if (!is_string($key) || in_array($key, self::INVALID_COOKIEKEYS, true)) {
+            throw new ConfigException('YOURLS_COOKIEKEY is undefined or still set to the sample value. Set it to a long random string, see https://yourls.org/cookiedoc');
+        }
+    }
+
+    /**
+     * Define core constants that have not been user defined in config.php
+     *
+     * @since  1.7.3
+     * @return void
+     * @throws ConfigException
+     */
+    public function define_core_constants(): void {
+        // Check minimal config job has been properly done
+        $this->check_mandatory_constants();
+        $this->check_cookie_key(defined('YOURLS_COOKIEKEY') ? YOURLS_COOKIEKEY : null);
+
+        /**
+         * The following has an awful CRAP index and it would be much shorter reduced to something like
+         * defining an array of ('YOURLS_SOMETHING' => 'default value') and then a simple loop over the
+         * array, checking if $current is defined as a constant and otherwise define said constant with
+         * its default value. I did not write it that way because that would make it difficult for code
+         * parsers to identify which constants are defined and where. So, here it is, that long list of
+         * if (!defined) define(). Ho and by the way, such beautiful comment, much right aligned, wow !
+         */
+
+        // physical path of YOURLS root
+        if (!defined( 'YOURLS_ABSPATH' ))
+            define('YOURLS_ABSPATH', $this->root);
+
+        // physical path of includes directory
+        if (!defined( 'YOURLS_INC' ))
+            define('YOURLS_INC', YOURLS_ABSPATH.'/includes');
+
+        // physical path of user directory
+        if (!defined( 'YOURLS_USERDIR' ))
+            define( 'YOURLS_USERDIR', YOURLS_ABSPATH.'/user' );
+
+        // URL of user directory
+        if (!defined( 'YOURLS_USERURL' ))
+            define( 'YOURLS_USERURL', trim(YOURLS_SITE, '/').'/user' );
+
+        // physical path of asset directory
+        if( !defined( 'YOURLS_ASSETDIR' ) )
+            define( 'YOURLS_ASSETDIR', YOURLS_ABSPATH.'/assets' );
+
+        // URL of asset directory
+        if( !defined( 'YOURLS_ASSETURL' ) )
+            define( 'YOURLS_ASSETURL', trim(YOURLS_SITE, '/').'/assets' );
+
+        // physical path of translations directory
+        if (!defined( 'YOURLS_LANG_DIR' ))
+            define( 'YOURLS_LANG_DIR', YOURLS_USERDIR.'/languages' );
+
+        // physical path of plugins directory
+        if (!defined( 'YOURLS_PLUGINDIR' ))
+            define( 'YOURLS_PLUGINDIR', YOURLS_USERDIR.'/plugins' );
+
+        // URL of plugins directory
+        if (!defined( 'YOURLS_PLUGINURL' ))
+            define( 'YOURLS_PLUGINURL', YOURLS_USERURL.'/plugins' );
+
+        // physical path of themes directory
+        if( !defined( 'YOURLS_THEMEDIR' ) )
+            define( 'YOURLS_THEMEDIR', YOURLS_USERDIR.'/themes' );
+
+        // URL of themes directory
+        if( !defined( 'YOURLS_THEMEURL' ) )
+            define( 'YOURLS_THEMEURL', YOURLS_USERURL.'/themes' );
+
+        // physical path of pages directory
+        if (!defined( 'YOURLS_PAGEDIR' ))
+            define('YOURLS_PAGEDIR', YOURLS_USERDIR.'/pages' );
+
+        // table to store URLs
+        if (!defined( 'YOURLS_DB_TABLE_URL' ))
+            define( 'YOURLS_DB_TABLE_URL', YOURLS_DB_PREFIX.'url' );
+
+        // table to store options
+        if (!defined( 'YOURLS_DB_TABLE_OPTIONS' ))
+            define( 'YOURLS_DB_TABLE_OPTIONS', YOURLS_DB_PREFIX.'options' );
+
+        // table to store hits, for stats
+        if (!defined( 'YOURLS_DB_TABLE_LOG' ))
+            define( 'YOURLS_DB_TABLE_LOG', YOURLS_DB_PREFIX.'log' );
+
+        // if set to true, verbose debug infos
+        if (!defined( 'YOURLS_DEBUG' )) {
+            define('YOURLS_DEBUG', false);
+        }
+
+    }
+
+}
