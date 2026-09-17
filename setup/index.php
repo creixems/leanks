@@ -87,9 +87,35 @@ function leanks_setup_diagnose_sample_links() {
             continue;
         }
         $result = yourls_add_new_link( $url, $keyword, $title );
-        $reasons[] = $keyword . ': ' . ( $result['message'] ?? 'unknown error' );
+        $reason = $keyword . ': ' . ( $result['message'] ?? 'unknown error' );
+        if ( ( $result['code'] ?? '' ) === 'error:keyword' ) {
+            $reason .= ' (' . leanks_setup_why_keyword_reserved( $keyword ) . ')';
+        }
+        $reasons[] = $reason;
     }
     return $reasons;
+}
+
+/**
+ * yourls_keyword_is_free() collapses three different checks (explicitly reserved, matches a
+ * user/pages/*.php file, or a real directory of that name exists) into one generic "already
+ * exists in database or is reserved" message. Figure out which one actually applies.
+ */
+function leanks_setup_why_keyword_reserved( $keyword ) {
+    global $yourls_reserved_URL;
+
+    if ( is_array( $yourls_reserved_URL ) && in_array( $keyword, $yourls_reserved_URL, true ) ) {
+        return "listed in \$yourls_reserved_URL in user/config.php";
+    }
+    if ( file_exists( YOURLS_PAGEDIR . "/$keyword.php" ) ) {
+        return "user/pages/$keyword.php exists on this server";
+    }
+    if ( is_dir( YOURLS_ABSPATH . "/$keyword" ) ) {
+        return "a directory named '$keyword' exists at your install root -- YOURLS treats any real "
+            . "directory matching a short URL's name as reserved (regardless of what's in it). Rename or "
+            . "remove that folder, then submit this form again.";
+    }
+    return 'reason unclear -- a plugin may be reserving it via the keyword_is_reserved filter';
 }
 
 function leanks_setup_friendly_install_error( $message ) {

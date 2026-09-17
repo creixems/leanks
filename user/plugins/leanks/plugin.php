@@ -3,7 +3,7 @@
 Plugin Name: Leanks
 Plugin URI: https://github.com/creixems/leanks
 Description: Powers the Leanks dashboard (/app): password-protected links, link expiration & click limits, and UTM metadata on top of stock YOURLS. Required for the custom Leanks admin UI to work.
-Version: 1.1.2
+Version: 1.1.3
 Author: Leanks
 Author URI: https://github.com/creixems/leanks
 */
