@@ -451,6 +451,7 @@
     $('#tags-btn').addEventListener('click', openTagsModal);
     $('#settings-btn').addEventListener('click', openSettingsModal);
     $('#settings-save-btn').addEventListener('click', onSaveSettings);
+    $('#s-check-update-btn').addEventListener('click', () => refreshUpdateStatus(true));
 
     bindListToolbar();
     updateLinksFilterButtonLabel();
@@ -1065,6 +1066,37 @@
       const res = await Api.getSettings();
       $('#s-default-redirect').value = res.default_redirect || '';
     } catch (e) { /* leave blank -- not fatal */ }
+    refreshUpdateStatus(false);
+  }
+
+  // Bypasses the 24h server-side throttle on `force` -- lets an admin check right after
+  // publishing a release instead of waiting for the cached "no update" result to expire.
+  async function refreshUpdateStatus(force) {
+    const statusEl = $('#s-update-status');
+    const btn = $('#s-check-update-btn');
+    statusEl.textContent = force ? 'Checking for updates…' : 'Loading…';
+    btn.disabled = true;
+    try {
+      const info = await Api.checkUpdate(force);
+      if (!info) throw new Error();
+      if (info.update_available) {
+        latestUpdateInfo = info;
+        statusEl.innerHTML = `Leanks v${escHtml(info.latest)} is available (you're on v${escHtml(info.current)}). <a href="#" id="s-update-view-link">View update</a>`;
+        $('#s-update-view-link').addEventListener('click', (e) => {
+          e.preventDefault();
+          closeModal('settings-modal-backdrop');
+          openUpdateModal();
+        });
+        $('#update-banner-text').textContent = `Leanks v${info.latest} is available (you're on v${info.current}).`;
+        $('#update-banner').classList.remove('hidden');
+      } else {
+        statusEl.textContent = `You're up to date (v${info.current}).`;
+      }
+    } catch (e) {
+      statusEl.textContent = 'Could not check for updates.';
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   async function onSaveSettings() {

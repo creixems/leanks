@@ -77,8 +77,8 @@ const Api = (function () {
       return call('delete', { id: row.keyword, keyword: row.keyword, nonce: row.nonce_delete }, 'POST');
     },
 
-    async checkUpdate() {
-      return call('leanks_check_update');
+    async checkUpdate(force) {
+      return call('leanks_check_update', force ? { force: 1 } : {});
     },
 
     async runUpdate() {

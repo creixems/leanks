@@ -176,7 +176,8 @@ function leanks_update_check( $force = false ) {
 }
 
 function leanks_ajax_check_update() {
-    leanks_json( leanks_update_check() );
+    $force = !empty( $_GET['force'] );
+    leanks_json( leanks_update_check( $force ) );
 }
 yourls_add_action( 'yourls_ajax_leanks_check_update', 'leanks_ajax_check_update' );
 
