@@ -11,6 +11,10 @@
 
 <div class="topbar">
   <div class="logo"><span class="logo-mark">L</span> Leanks</div>
+  <div class="nav-tabs" id="nav-tabs">
+    <button type="button" class="nav-tab active" data-view="links">Links</button>
+    <button type="button" class="nav-tab" data-view="analytics">Analytics</button>
+  </div>
   <div class="topbar-search search-box">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
     <input type="search" id="search-input" placeholder="Search links...">
@@ -24,7 +28,7 @@
   </div>
 </div>
 
-<main class="container">
+<main class="container" id="view-links">
   <div class="update-banner hidden" id="update-banner">
     <span id="update-banner-text"></span>
     <div class="update-banner-actions">
@@ -64,6 +68,67 @@
       <p>Create your first short link to get started.</p>
     </div>
     <div class="pagination" id="pagination"></div>
+  </div>
+</main>
+
+<main class="container hidden" id="view-analytics">
+  <div class="analytics-header">
+    <div class="an-clicks">
+      <div class="stat-label">Clicks</div>
+      <div class="an-clicks-value" id="an-clicks-value">–</div>
+    </div>
+    <div class="an-controls">
+      <button type="button" class="btn btn-secondary" id="an-filter-btn">Filter</button>
+      <button type="button" class="btn btn-secondary" id="an-range-btn">Last 7 days</button>
+    </div>
+  </div>
+
+  <div class="badge badge-amber hidden" id="an-capped-note" style="margin-bottom:10px;"></div>
+
+  <div class="card chart-wrap">
+    <div id="an-chart"></div>
+  </div>
+
+  <div class="breakdown-grid">
+    <div class="card breakdown-card">
+      <div class="breakdown-tabs">
+        <button type="button" class="breakdown-tab active" data-tab="short_links">Short Links</button>
+        <button type="button" class="breakdown-tab" data-tab="destination_urls">Destination URLs</button>
+      </div>
+      <div class="breakdown-rows" id="an-rows-links"></div>
+    </div>
+
+    <div class="card breakdown-card">
+      <div class="breakdown-tabs">
+        <button type="button" class="breakdown-tab active" data-tab="referrers">Referrers</button>
+        <button type="button" class="breakdown-tab" data-tab="utm">UTM Parameters</button>
+      </div>
+      <div class="breakdown-subtabs hidden" id="an-utm-subtabs">
+        <button type="button" class="breakdown-subtab active" data-utm="source">Source</button>
+        <button type="button" class="breakdown-subtab" data-utm="medium">Medium</button>
+        <button type="button" class="breakdown-subtab" data-utm="campaign">Campaign</button>
+        <button type="button" class="breakdown-subtab" data-utm="term">Term</button>
+        <button type="button" class="breakdown-subtab" data-utm="content">Content</button>
+      </div>
+      <div class="breakdown-rows" id="an-rows-referrers"></div>
+    </div>
+
+    <div class="card breakdown-card">
+      <div class="breakdown-tabs">
+        <button type="button" class="breakdown-tab active" data-tab="countries">Countries</button>
+        <button type="button" class="breakdown-tab" data-tab="continents">Continents</button>
+      </div>
+      <div class="breakdown-rows" id="an-rows-geo"></div>
+    </div>
+
+    <div class="card breakdown-card">
+      <div class="breakdown-tabs">
+        <button type="button" class="breakdown-tab active" data-tab="devices">Devices</button>
+        <button type="button" class="breakdown-tab" data-tab="browsers">Browsers</button>
+        <button type="button" class="breakdown-tab" data-tab="os">OS</button>
+      </div>
+      <div class="breakdown-rows" id="an-rows-devices"></div>
+    </div>
   </div>
 </main>
 
@@ -199,9 +264,11 @@
 </div>
 
 <div class="toast-stack" id="toast-stack"></div>
+<div class="popover hidden" id="popover"></div>
 
 <script src="js/vendor/qrcode.js"></script>
 <script src="js/api.js"></script>
+<script src="js/analytics.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

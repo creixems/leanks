@@ -69,7 +69,8 @@ button, input, select { font-family: inherit; }
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 10px 16px;
   padding: 14px 24px;
   background: color-mix(in srgb, var(--bg) 85%, transparent);
   backdrop-filter: blur(8px);
@@ -333,3 +334,85 @@ details.advanced[open] > summary { color: var(--text); }
   background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
   padding: 10px 12px; max-height: 200px; overflow-y: auto; margin: 0;
 }
+
+/* Nav tabs (topbar Links / Analytics switcher) */
+
+.nav-tabs {
+  display: flex; gap: 2px; background: var(--border); padding: 3px; border-radius: 999px;
+  flex-shrink: 0;
+}
+.nav-tab {
+  border: none; background: transparent; color: var(--text-dim); cursor: pointer;
+  font-size: 0.82rem; font-weight: 600; padding: 6px 14px; border-radius: 999px;
+}
+.nav-tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+
+/* Popover (generic, anchored -- used by the Analytics range picker and filter picker) */
+
+.popover {
+  position: absolute; z-index: 30; min-width: 220px; max-width: 320px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow-lg); padding: 6px;
+}
+.popover-list { display: flex; flex-direction: column; }
+.popover-item {
+  display: block; width: 100%; text-align: left; border: none; background: transparent;
+  color: var(--text); font-size: 0.85rem; padding: 8px 10px; border-radius: 6px; cursor: pointer;
+}
+.popover-item:hover { background: var(--bg); }
+.popover-item.active { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
+.popover-custom-range { display: flex; gap: 6px; align-items: center; padding: 8px; border-top: 1px solid var(--border); margin-top: 4px; }
+.popover-custom-range input { flex: 1; padding: 7px 8px; font-size: 0.8rem; }
+.popover-suggestions:not(:empty) {
+  margin-top: 4px; border: 1px solid var(--border); border-radius: 8px; max-height: 160px; overflow-y: auto;
+}
+.popover-actions { display: flex; justify-content: space-between; gap: 8px; padding: 8px 6px 2px; border-top: 1px solid var(--border); margin-top: 6px; }
+
+.filter-form { padding: 4px; min-width: 240px; }
+.filter-form select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 0.85rem; }
+
+/* Analytics view */
+
+.analytics-header {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.an-clicks-value { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.02em; }
+.an-controls { display: flex; gap: 8px; position: relative; }
+
+.chart-wrap { padding: 16px 16px 4px; margin-bottom: 20px; }
+#an-chart { position: relative; min-height: 220px; }
+.chart-grid { stroke: var(--border); stroke-dasharray: 4 4; stroke-width: 1; }
+.chart-axis-label { fill: var(--text-faint); font-size: 10px; }
+.chart-empty { display: flex; align-items: center; justify-content: center; height: 220px; color: var(--text-faint); font-size: 0.85rem; }
+.chart-tooltip {
+  position: absolute; top: 8px; transform: translateX(-50%);
+  background: var(--accent); color: var(--accent-text); font-size: 0.75rem; font-weight: 600;
+  padding: 5px 9px; border-radius: 6px; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-lg);
+}
+
+.breakdown-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 12px;
+}
+.breakdown-card { padding: 14px 16px; }
+.breakdown-tabs { display: flex; gap: 16px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.breakdown-tab {
+  border: none; background: transparent; cursor: pointer; color: var(--text-dim); font-size: 0.82rem;
+  font-weight: 600; padding: 8px 2px; border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.breakdown-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.breakdown-subtabs { display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 0 2px; }
+.breakdown-subtab {
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-dim); cursor: pointer;
+  font-size: 0.72rem; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+}
+.breakdown-subtab.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+
+.breakdown-row {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 7px 8px; border-radius: 6px; overflow: hidden; font-size: 0.83rem;
+}
+.breakdown-row-bar {
+  position: absolute; inset: 0 auto 0 0; background: var(--blue-bg); border-radius: 6px; z-index: 0;
+}
+.breakdown-row-label { position: relative; z-index: 1; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.breakdown-row-count { position: relative; z-index: 1; font-variant-numeric: tabular-nums; font-weight: 600; flex-shrink: 0; }

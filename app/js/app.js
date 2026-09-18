@@ -21,6 +21,7 @@
     bindEvents();
     loadLinks();
     checkForUpdate();
+    Analytics.init();
   }
 
   // ---------- toasts ----------
@@ -35,6 +36,18 @@
   // ---------- modal helpers ----------
   function openModal(id) { $('#' + id).classList.remove('hidden'); }
   function closeModal(id) { $('#' + id).classList.add('hidden'); }
+
+  // ---------- view switching (Links / Analytics) ----------
+  function switchView(view) {
+    $$('.nav-tab').forEach((t) => t.classList.toggle('active', t.dataset.view === view));
+    $('#view-links').classList.toggle('hidden', view !== 'links');
+    $('#view-analytics').classList.toggle('hidden', view !== 'analytics');
+    // Search/Import/Create are Links-view-only actions.
+    [$('#search-input').closest('.topbar-search'), $('#import-btn'), $('#create-btn')].forEach((el) => {
+      el.classList.toggle('hidden', view !== 'links');
+    });
+    if (view === 'analytics') Analytics.show();
+  }
 
   // Delegated so it also covers buttons injected later (e.g. the import modal's dynamic footer).
   document.body.addEventListener('click', (e) => {
@@ -156,6 +169,8 @@
   function bindEvents() {
     $('#create-btn').addEventListener('click', openCreate);
     $('#logout-btn').addEventListener('click', async () => { await Api.logout(); window.location.replace('login.html'); });
+
+    $$('.nav-tab').forEach((tab) => tab.addEventListener('click', () => switchView(tab.dataset.view)));
 
     $('#f-password-toggle').addEventListener('change', (e) => {
       $('#f-password-wrap').classList.toggle('hidden', !e.target.checked);

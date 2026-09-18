@@ -95,6 +95,14 @@ const Api = (function () {
       return call('leanks_restore_backup', { file, nonce: b.nonce_update }, 'POST');
     },
 
+    async analyticsOverview(params) {
+      return call('leanks_analytics_overview', params);
+    },
+
+    async analyticsFilterOptions() {
+      return call('leanks_analytics_filter_options');
+    },
+
     async importCsv(file) {
       const b = await this.bootstrap();
       const url = new URL(AJAX_URL, window.location.href);

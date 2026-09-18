@@ -15,8 +15,10 @@ Leanks is YOURLS underneath (redirect engine, database, click tracking) with:
 - **Link expiration** -- by date, by max click count, or both.
 - **UTM campaign tags** -- a built-in UTM builder with a live preview of the final destination URL.
 - **QR codes** -- generated client-side for any link, downloadable as PNG.
-- Click analytics (powered by YOURLS' own tracking): totals, a 30-day chart, top referrers, top
-  countries.
+- **Analytics** -- a dedicated dashboard page with a clicks chart across 9 time ranges (last 24
+  hours through year-to-date, plus a custom range), filters (link, country, continent, device,
+  browser, OS, referrer), and ranked breakdowns by short link, destination URL, referrer, UTM
+  parameter, country, continent, device, browser and OS.
 - **CSV import** -- migrate links from another shortener via CSV, with column auto-detection,
   duplicate/error reporting, and original creation dates preserved.
 - **One-click updates** -- the dashboard notices new releases and applies them in place, with an
