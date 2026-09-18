@@ -15,6 +15,8 @@ require_once __DIR__ . '/includes/version.php';
 require_once __DIR__ . '/includes/migrations.php';
 require_once __DIR__ . '/includes/meta.php';
 require_once __DIR__ . '/includes/analytics.php';
+require_once __DIR__ . '/includes/tags.php';
+require_once __DIR__ . '/includes/settings.php';
 require_once __DIR__ . '/includes/redirect-gate.php';
 require_once __DIR__ . '/includes/ajax.php';
 require_once __DIR__ . '/includes/import.php';

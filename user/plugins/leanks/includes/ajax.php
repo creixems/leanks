@@ -37,29 +37,38 @@ function leanks_ajax_bootstrap() {
 yourls_add_action( 'yourls_ajax_leanks_bootstrap', 'leanks_ajax_bootstrap' );
 
 /**
- * Paginated, searchable link list, links joined with their Leanks metadata.
+ * Paginated, searchable, sortable, tag-filterable link list, links joined with their Leanks
+ * metadata and tags.
  */
 function leanks_ajax_list() {
     $table = YOURLS_DB_TABLE_URL;
     $meta_table = leanks_meta_table();
+    $link_tags_table = leanks_link_tags_table();
 
     $search   = isset( $_GET['search'] ) ? trim( (string) $_GET['search'] ) : '';
+    $tag_id   = (int) ( $_GET['tag_id'] ?? 0 );
     $page     = max( 1, (int) ( $_GET['page'] ?? 1 ) );
     $perpage  = min( 100, max( 1, (int) ( $_GET['perpage'] ?? 20 ) ) );
     $offset   = ( $page - 1 ) * $perpage;
     $sort     = in_array( $_GET['sort'] ?? '', [ 'timestamp', 'clicks', 'keyword' ], true ) ? $_GET['sort'] : 'timestamp';
     $order    = strtoupper( $_GET['order'] ?? 'DESC' ) === 'ASC' ? 'ASC' : 'DESC';
 
-    $where = '';
+    $conditions = [];
     $binds = [];
     if ( $search !== '' ) {
-        $where = "WHERE u.keyword LIKE :s OR u.url LIKE :s OR u.title LIKE :s";
+        $conditions[] = "(u.keyword LIKE :s OR u.url LIKE :s OR u.title LIKE :s)";
         $binds['s'] = '%' . $search . '%';
     }
+    if ( $tag_id > 0 ) {
+        $conditions[] = "u.keyword IN (SELECT keyword FROM `$link_tags_table` WHERE tag_id = :tag_id)";
+        $binds['tag_id'] = $tag_id;
+    }
+    $where = $conditions ? 'WHERE ' . implode( ' AND ', $conditions ) : '';
 
     $db = yourls_get_db( 'read-leanks_list' );
 
     $total = (int) $db->fetchValue( "SELECT COUNT(*) FROM `$table` u $where", $binds );
+    $total_clicks = (int) $db->fetchValue( "SELECT COALESCE(SUM(u.clicks), 0) FROM `$table` u $where", $binds );
 
     $rows = $db->fetchObjects(
         "SELECT u.keyword, u.url, u.title, u.timestamp, u.ip, u.clicks,
@@ -73,7 +82,9 @@ function leanks_ajax_list() {
         $binds
     );
 
-    $items = array_map( function ( $r ) {
+    $tagsByKeyword = leanks_get_tags_for_keywords( array_map( fn( $r ) => $r->keyword, $rows ) );
+
+    $items = array_map( function ( $r ) use ( $tagsByKeyword ) {
         $expired = !empty( $r->expires_at ) && strtotime( $r->expires_at ) <= time();
         $limit_reached = !empty( $r->max_clicks ) && (int) $r->clicks >= (int) $r->max_clicks;
         return [
@@ -94,16 +105,18 @@ function leanks_ajax_list() {
                 'term'     => $r->utm_term,
                 'content'  => $r->utm_content,
             ],
+            'tags'         => $tagsByKeyword[ $r->keyword ] ?? [],
             'nonce_edit'   => yourls_create_nonce( 'edit-save_' . $r->keyword ),
             'nonce_delete' => yourls_create_nonce( 'delete-link_' . $r->keyword ),
         ];
     }, $rows );
 
     leanks_json( [
-        'items'   => $items,
-        'total'   => $total,
-        'page'    => $page,
-        'perpage' => $perpage,
+        'items'        => $items,
+        'total'        => $total,
+        'total_clicks' => $total_clicks,
+        'page'         => $page,
+        'perpage'      => $perpage,
     ] );
 }
 yourls_add_action( 'yourls_ajax_leanks_list', 'leanks_ajax_list' );
@@ -146,9 +159,24 @@ function leanks_ajax_save_meta() {
     }
 
     leanks_save_meta( $keyword, $fields );
+
+    if ( array_key_exists( 'tag_ids', $_POST ) ) {
+        leanks_set_link_tags( $keyword, leanks_parse_tag_ids( $_POST['tag_ids'] ) );
+    }
+
     leanks_json( [ 'success' => true ] );
 }
 yourls_add_action( 'yourls_ajax_leanks_save_meta', 'leanks_ajax_save_meta' );
+
+/**
+ * Parses the comma-separated `tag_ids` form field the create/edit link form sends (e.g. "3,7,12").
+ *
+ * @return int[]
+ */
+function leanks_parse_tag_ids( $raw ) {
+    $ids = array_map( 'intval', explode( ',', (string) $raw ) );
+    return array_values( array_filter( $ids, fn( $id ) => $id > 0 ) );
+}
 
 /**
  * When a link is created through the stock admin-ajax "add" action, pick up any Leanks fields
@@ -166,7 +194,7 @@ function leanks_on_new_link( $args ) {
     }
     $has_extra = !empty( $_POST['password'] ) || !empty( $_POST['expires_at'] ) || !empty( $_POST['max_clicks'] )
         || !empty( $_POST['utm_source'] ) || !empty( $_POST['utm_medium'] ) || !empty( $_POST['utm_campaign'] )
-        || !empty( $_POST['utm_term'] ) || !empty( $_POST['utm_content'] );
+        || !empty( $_POST['utm_term'] ) || !empty( $_POST['utm_content'] ) || !empty( $_POST['tag_ids'] );
     if ( !$has_extra ) {
         return;
     }
@@ -198,6 +226,10 @@ function leanks_save_meta_from_request( $keyword ) {
     }
 
     leanks_save_meta( $keyword, $fields );
+
+    if ( !empty( $_POST['tag_ids'] ) ) {
+        leanks_set_link_tags( $keyword, leanks_parse_tag_ids( $_POST['tag_ids'] ) );
+    }
 }
 
 /**

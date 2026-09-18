@@ -39,6 +39,13 @@ function leanks_import_column_aliases() {
         'createdat'          => 'created',
         'datecreated'        => 'created',
         'date'               => 'created',
+
+        'clicks'             => 'clicks',
+        'clickcount'         => 'clicks',
+        'numberofclicks'     => 'clicks',
+
+        'tags'               => 'tags',
+        'tag'                => 'tags',
     ];
 }
 
@@ -54,6 +61,13 @@ function leanks_import_extract_keyword( $value ) {
     $value = trim( (string) $value );
     if ( $value === '' ) {
         return '';
+    }
+    // A bare slug ("abc123") has no scheme and no slash at all -- it's already the keyword.
+    // Without this check, prepending "https://" turns it into a bare hostname with no path
+    // component (parse_url("https://abc123", PHP_URL_PATH) is empty), so the code below would
+    // silently discard it and fall through to an auto-generated keyword instead.
+    if ( strpos( $value, '/' ) === false && !preg_match( '#^[a-z][a-z0-9+.-]*://#i', $value ) ) {
+        return $value;
     }
     if ( !preg_match( '#^[a-z][a-z0-9+.-]*://#i', $value ) ) {
         $value = 'https://' . $value;
@@ -122,6 +136,8 @@ function leanks_ajax_import() {
         $short = isset( $columns['short'] ) ? trim( (string) ( $row[ $columns['short'] ] ?? '' ) ) : '';
         $title = isset( $columns['title'] ) ? trim( (string) ( $row[ $columns['title'] ] ?? '' ) ) : '';
         $created = isset( $columns['created'] ) ? trim( (string) ( $row[ $columns['created'] ] ?? '' ) ) : '';
+        $clicks = isset( $columns['clicks'] ) ? trim( (string) ( $row[ $columns['clicks'] ] ?? '' ) ) : '';
+        $tags = isset( $columns['tags'] ) ? trim( (string) ( $row[ $columns['tags'] ] ?? '' ) ) : '';
 
         if ( $url === '' ) {
             $skipped++;
@@ -155,6 +171,28 @@ function leanks_ajax_import() {
                     'UPDATE `' . YOURLS_DB_TABLE_URL . '` SET `timestamp` = :ts WHERE `keyword` = :keyword',
                     [ 'ts' => date( 'Y-m-d H:i:s', $ts ), 'keyword' => $return['url']['keyword'] ]
                 );
+            }
+        }
+
+        // yourls_add_new_link() always inserts with clicks = 0 -- there's no way to set a
+        // starting count at creation, so set it with the same function YOURLS itself uses to
+        // update a link's click count. This is only ever a starting total: an import can't
+        // backfill the Analytics page's per-day/referrer/country breakdowns, since a CSV export
+        // has no per-click log, only totals.
+        if ( $clicks !== '' && ctype_digit( $clicks ) && (int) $clicks > 0 ) {
+            yourls_update_clicks( $return['url']['keyword'], (int) $clicks );
+        }
+
+        if ( $tags !== '' ) {
+            $tag_ids = [];
+            foreach ( preg_split( '/[,;]/', $tags ) as $tag_name ) {
+                $tag_name = trim( $tag_name );
+                if ( $tag_name !== '' ) {
+                    $tag_ids[] = leanks_find_or_create_tag_by_name( $tag_name );
+                }
+            }
+            if ( !empty( $tag_ids ) ) {
+                leanks_set_link_tags( $return['url']['keyword'], $tag_ids );
             }
         }
     }

@@ -15,15 +15,15 @@
     <button type="button" class="nav-tab active" data-view="links">Links</button>
     <button type="button" class="nav-tab" data-view="analytics">Analytics</button>
   </div>
-  <div class="topbar-search search-box">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-    <input type="search" id="search-input" placeholder="Search links...">
-  </div>
   <div class="topbar-spacer"></div>
+  <button class="btn btn-secondary" id="tags-btn">Tags</button>
   <button class="btn btn-secondary" id="import-btn">Import CSV</button>
   <button class="btn btn-primary" id="create-btn">+ Create link</button>
   <div class="user-menu">
     <span id="current-user"></span>
+    <button class="btn btn-ghost btn-icon" id="settings-btn" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
     <button class="btn btn-ghost btn-sm" id="logout-btn">Log out</button>
   </div>
 </div>
@@ -38,6 +38,24 @@
     </div>
   </div>
 
+  <div class="list-toolbar">
+    <button type="button" class="btn btn-secondary" id="links-filter-btn">Filter</button>
+    <button type="button" class="btn btn-secondary" id="links-display-btn">Display</button>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-search search-box">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="search" id="search-input" placeholder="Search links...">
+    </div>
+  </div>
+
+  <div class="bulk-bar hidden" id="bulk-bar">
+    <span id="bulk-count"></span>
+    <div style="display:flex;gap:8px;">
+      <button type="button" class="btn btn-ghost btn-sm" id="bulk-cancel-btn">Cancel</button>
+      <button type="button" class="btn btn-danger btn-sm" id="bulk-delete-btn">Delete selected</button>
+    </div>
+  </div>
+
   <div class="stat-row">
     <div class="stat-card">
       <div class="stat-label">Total links</div>
@@ -49,26 +67,29 @@
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="links-rows-view">
     <table class="links-table">
       <thead>
         <tr>
+          <th class="checkbox-cell"><input type="checkbox" id="select-all-checkbox"></th>
           <th>Link</th>
-          <th>Clicks</th>
-          <th>Created</th>
+          <th class="col-clicks">Clicks</th>
+          <th class="col-created">Created</th>
           <th></th>
         </tr>
       </thead>
       <tbody id="links-tbody">
-        <tr><td colspan="4" style="padding:24px;"><div class="skeleton" style="height:40px;"></div></td></tr>
+        <tr><td colspan="5" style="padding:24px;"><div class="skeleton" style="height:40px;"></div></td></tr>
       </tbody>
     </table>
     <div id="empty-state" class="empty-state hidden">
       <h3>No links yet</h3>
       <p>Create your first short link to get started.</p>
     </div>
-    <div class="pagination" id="pagination"></div>
   </div>
+
+  <div class="link-cards-grid hidden" id="links-cards-view"></div>
+  <div class="pagination" id="pagination"></div>
 </main>
 
 <main class="container hidden" id="view-analytics">
@@ -179,6 +200,12 @@
           </div>
         </div>
 
+        <div class="section-label">Tags</div>
+        <div class="tag-picker">
+          <button type="button" class="btn btn-secondary btn-sm" id="f-tags-btn">+ Add tags</button>
+          <div class="tag-chip-row" id="f-selected-tags"></div>
+        </div>
+
         <div class="section-label">UTM campaign tags</div>
         <div class="input-row">
           <div class="field"><label for="f-utm-source">Source</label><input type="text" id="f-utm-source" placeholder="newsletter"></div>
@@ -198,6 +225,60 @@
         <button type="submit" class="btn btn-primary" id="link-form-submit">Create link</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Tags modal -->
+<div class="modal-backdrop hidden" id="tags-modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Tags</h2>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <div id="tags-body">Loading…</div>
+    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-close>Close</button></div>
+  </div>
+</div>
+
+<!-- New / Edit tag modal -->
+<div class="modal-backdrop hidden" id="tag-edit-modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="tag-edit-modal-title">New tag</h2>
+      <button class="modal-close" id="tag-edit-close">&times;</button>
+    </div>
+    <p style="font-size:0.85rem;color:var(--text-dim);margin-top:-6px;">Use tags to organize your links.</p>
+    <div class="field">
+      <label for="te-name">Tag Name</label>
+      <input type="text" id="te-name" placeholder="e.g. Marketing">
+    </div>
+    <div class="field">
+      <label>Tag Color</label>
+      <div class="color-pill-row" id="te-colors"></div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" id="tag-edit-cancel">Cancel</button>
+      <button type="button" class="btn btn-primary" id="te-save">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-backdrop hidden" id="settings-modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button class="modal-close" data-close>&times;</button>
+    </div>
+    <div class="field">
+      <label for="s-default-redirect">Default domain redirect <span style="font-weight:400;color:var(--text-faint);">(optional)</span></label>
+      <input type="url" id="s-default-redirect" placeholder="https://example.com">
+      <div class="hint">Where visitors land if they open your short domain with no short link after it (e.g. just your bare domain). Leave blank to disable.</div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+      <button type="button" class="btn btn-primary" id="settings-save-btn">Save</button>
+    </div>
   </div>
 </div>
 
@@ -251,11 +332,11 @@
   </div>
 </div>
 
-<!-- Delete confirm -->
+<!-- Delete confirm (also used for bulk delete, with its copy swapped in JS) -->
 <div class="modal-backdrop hidden" id="delete-modal-backdrop">
   <div class="modal">
-    <div class="modal-header"><h2>Delete link?</h2><button class="modal-close" data-close>&times;</button></div>
-    <p style="font-size:0.88rem;color:var(--text-dim);">This can't be undone. The short link will stop working immediately.</p>
+    <div class="modal-header"><h2 id="delete-modal-title">Delete link?</h2><button class="modal-close" data-close>&times;</button></div>
+    <p style="font-size:0.88rem;color:var(--text-dim);" id="delete-modal-text">This can't be undone. The short link will stop working immediately.</p>
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" data-close>Cancel</button>
       <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
@@ -268,6 +349,7 @@
 
 <script src="js/vendor/qrcode.js"></script>
 <script src="js/api.js"></script>
+<script src="js/ui.js"></script>
 <script src="js/analytics.js"></script>
 <script src="js/app.js"></script>
 </body>

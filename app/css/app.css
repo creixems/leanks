@@ -18,6 +18,12 @@
   --red-bg: #fef2f2;
   --amber: #d97706;
   --amber-bg: #fffbeb;
+  --purple: #7c3aed;
+  --purple-bg: #f5f3ff;
+  --yellow: #ca8a04;
+  --yellow-bg: #fefce8;
+  --brown: #92400e;
+  --brown-bg: #fef3e7;
   --radius: 10px;
   --radius-lg: 16px;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -40,6 +46,9 @@
     --green-bg: #0c2116;
     --red-bg: #2a1010;
     --amber-bg: #2a1c05;
+    --purple-bg: #1e1533;
+    --yellow-bg: #2a2405;
+    --brown-bg: #2a1c0f;
     color-scheme: dark;
   }
 }
@@ -167,6 +176,25 @@ input[type=text], input[type=url], input[type=password], input[type=date], input
   outline: none;
 }
 input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-bg); }
+
+select {
+  width: 100%;
+  padding: 9px 34px 9px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-bg); }
 .input-row { display: flex; gap: 10px; }
 .input-row > * { flex: 1; }
 
@@ -208,11 +236,24 @@ table.links-table { width: 100%; border-collapse: collapse; }
 .links-table tbody tr:last-child td { border-bottom: none; }
 .links-table tbody tr:hover { background: color-mix(in srgb, var(--border) 35%, transparent); }
 
-.link-cell .short { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
-.link-cell .dest {
-  font-size: 0.8rem; color: var(--text-dim); max-width: 360px; overflow: hidden;
+/* .link-cell-text is the shared wrapper (favicon + short link + destination + badges) used both
+   by table rows (inside .link-cell) and cards (inside .link-card-top) -- style off it directly
+   rather than requiring a .link-cell ancestor, so both places get the same treatment. */
+.link-cell { display: flex; align-items: center; gap: 10px; }
+.link-cell-text { min-width: 0; flex: 1; width: 100%; }
+.link-cell-text .short { font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; }
+.link-cell-text .short a { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.link-cell-text .dest {
+  font-size: 0.8rem; color: var(--text-dim); width: 100%; max-width: 360px; overflow: hidden;
   text-overflow: ellipsis; white-space: nowrap; margin-top: 2px;
 }
+.favicon { width: 20px; height: 20px; border-radius: 4px; flex-shrink: 0; }
+
+#links-rows-view.hide-clicks .col-clicks { display: none; }
+#links-rows-view.hide-created .col-created { display: none; }
+
+.checkbox-cell { width: 36px; padding-right: 0 !important; }
+.checkbox-cell input[type=checkbox], .row-checkbox { width: 15px; height: 15px; cursor: pointer; }
 .copy-btn {
   border: none; background: transparent; cursor: pointer; color: var(--text-faint);
   padding: 2px; display: inline-flex; border-radius: 4px;
@@ -228,6 +269,9 @@ table.links-table { width: 100%; border-collapse: collapse; }
 .badge-green { background: var(--green-bg); color: var(--green); }
 .badge-red { background: var(--red-bg); color: var(--red); }
 .badge-amber { background: var(--amber-bg); color: var(--amber); }
+.badge-purple { background: var(--purple-bg); color: var(--purple); }
+.badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.badge-brown { background: var(--brown-bg); color: var(--brown); }
 .badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
 
 .clicks-cell { font-variant-numeric: tabular-nums; font-weight: 600; }
@@ -241,7 +285,7 @@ table.links-table { width: 100%; border-collapse: collapse; }
 
 .pagination {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 18px; font-size: 0.8rem; color: var(--text-dim);
+  padding: 14px 4px; font-size: 0.8rem; color: var(--text-dim);
 }
 
 /* Modal */
@@ -347,10 +391,13 @@ details.advanced[open] > summary { color: var(--text); }
 }
 .nav-tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 
-/* Popover (generic, anchored -- used by the Analytics range picker and filter picker) */
+/* Popover (generic, anchored -- used by the Analytics range/filter pickers, the links-list
+   Filter/Display pickers, and the tag picker inside the create/edit link modal). z-index must
+   beat .modal-backdrop's (100), since it can be opened from a trigger button living inside a
+   modal (e.g. the tag picker). */
 
 .popover {
-  position: absolute; z-index: 30; min-width: 220px; max-width: 320px;
+  position: absolute; z-index: 150; min-width: 220px; max-width: 320px;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   box-shadow: var(--shadow-lg); padding: 6px;
 }
@@ -369,7 +416,6 @@ details.advanced[open] > summary { color: var(--text); }
 .popover-actions { display: flex; justify-content: space-between; gap: 8px; padding: 8px 6px 2px; border-top: 1px solid var(--border); margin-top: 6px; }
 
 .filter-form { padding: 4px; min-width: 240px; }
-.filter-form select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 0.85rem; }
 
 /* Analytics view */
 
@@ -407,6 +453,7 @@ details.advanced[open] > summary { color: var(--text); }
 }
 .breakdown-subtab.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
 
+.breakdown-rows { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
 .breakdown-row {
   position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 7px 8px; border-radius: 6px; overflow: hidden; font-size: 0.83rem;
@@ -416,3 +463,88 @@ details.advanced[open] > summary { color: var(--text); }
 }
 .breakdown-row-label { position: relative; z-index: 1; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .breakdown-row-count { position: relative; z-index: 1; font-variant-numeric: tabular-nums; font-weight: 600; flex-shrink: 0; }
+
+/* Links-list toolbar (Filter / Display / search) + bulk-select action bar */
+
+.list-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.list-toolbar .topbar-search { max-width: 320px; flex: 1; }
+
+.bulk-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--blue-bg); border: 1px solid color-mix(in srgb, var(--blue) 35%, transparent);
+  border-radius: var(--radius); padding: 10px 16px; margin-bottom: 16px;
+  font-size: 0.85rem; font-weight: 600; color: var(--text);
+}
+
+/* View-mode toggle (Rows / Cards) + Display-properties checkboxes, inside the Display popover */
+
+.view-toggle { display: flex; gap: 4px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 3px; margin-bottom: 14px; }
+.view-toggle button {
+  flex: 1; border: none; background: transparent; color: var(--text-dim); cursor: pointer;
+  padding: 6px 0; border-radius: 6px; font-size: 0.8rem; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.view-toggle button.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+
+.display-properties { display: flex; flex-direction: column; gap: 8px; }
+.display-properties label { display: flex; align-items: center; gap: 8px; font-size: 0.83rem; cursor: pointer; }
+.display-properties input { cursor: pointer; }
+
+/* Cards view */
+
+.link-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-bottom: 4px; }
+.link-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 14px; display: flex; flex-direction: column; gap: 10px;
+}
+.link-card-top { display: flex; align-items: flex-start; gap: 10px; }
+.link-card-top .row-checkbox { margin-top: 3px; }
+.link-card-top .link-cell-text { flex: 1; min-width: 0; }
+.link-card-actions { display: flex; justify-content: flex-end; gap: 2px; }
+.link-card-footer {
+  display: flex; align-items: center; justify-content: space-between; font-size: 0.78rem;
+  color: var(--text-faint); border-top: 1px solid var(--border); padding-top: 10px;
+}
+
+/* Tag picker (inside the create/edit link form) + tag chips */
+
+.tag-picker { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.tag-chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag-chip-removable { cursor: pointer; }
+.tag-picker-row {
+  display: flex; align-items: center; gap: 8px; padding: 6px 4px; cursor: pointer; font-size: 0.85rem;
+}
+.tag-picker-row input { cursor: pointer; }
+.tag-picker-new {
+  display: flex; gap: 6px; padding: 8px 4px 2px; border-top: 1px solid var(--border); margin-top: 4px;
+}
+.tag-picker-new input {
+  flex: 1; padding: 7px 8px; border-radius: 6px; border: 1px solid var(--border-strong);
+  background: var(--surface); color: var(--text); font-size: 0.8rem;
+}
+
+/* Color pills -- labeled color-choice buttons used in the tag create/edit dialog and the
+   inline "new tag" mini-form inside the tag picker popover. border-color: currentColor means
+   each pill's selection ring automatically matches its own hue. */
+.color-pill-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.color-pill {
+  padding: 6px 14px; border-radius: 8px; border: 2px solid transparent; cursor: pointer;
+  font-size: 0.82rem; font-weight: 600;
+}
+.color-pill.active { border-color: currentColor; }
+.color-pill.pill-red { background: var(--red-bg); color: var(--red); }
+.color-pill.pill-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.color-pill.pill-green { background: var(--green-bg); color: var(--green); }
+.color-pill.pill-blue { background: var(--blue-bg); color: var(--blue); }
+.color-pill.pill-purple { background: var(--purple-bg); color: var(--purple); }
+.color-pill.pill-brown { background: var(--brown-bg); color: var(--brown); }
+.color-pill.pill-gray { background: var(--border); color: var(--text-dim); }
+
+/* Tags management modal */
+
+.tags-list-header { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+.tag-list { display: flex; flex-direction: column; gap: 4px; }
+.tag-row { display: flex; align-items: center; flex-wrap: wrap; padding: 8px 4px; border-bottom: 1px solid var(--border); }
+.tag-row:last-child { border-bottom: none; }
+.tag-row-count { font-size: 0.78rem; color: var(--text-faint); margin-left: 8px; }
+.tag-row-actions { display: inline-flex; gap: 4px; margin-left: auto; }

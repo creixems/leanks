@@ -103,6 +103,34 @@ const Api = (function () {
       return call('leanks_analytics_filter_options');
     },
 
+    async listTags() {
+      return call('leanks_tags_list');
+    },
+
+    async createTag(name, color) {
+      const b = await this.bootstrap();
+      return call('leanks_tags_create', { name, color, nonce: b.nonce_meta }, 'POST');
+    },
+
+    async updateTag(id, fields) {
+      const b = await this.bootstrap();
+      return call('leanks_tags_update', { id, ...fields, nonce: b.nonce_meta }, 'POST');
+    },
+
+    async deleteTag(id) {
+      const b = await this.bootstrap();
+      return call('leanks_tags_delete', { id, nonce: b.nonce_meta }, 'POST');
+    },
+
+    async getSettings() {
+      return call('leanks_get_settings');
+    },
+
+    async saveSettings(fields) {
+      const b = await this.bootstrap();
+      return call('leanks_save_settings', { ...fields, nonce: b.nonce_meta }, 'POST');
+    },
+
     async importCsv(file) {
       const b = await this.bootstrap();
       const url = new URL(AJAX_URL, window.location.href);

@@ -1,6 +1,38 @@
 (function () {
-  let state = { page: 1, perpage: 20, search: '', total: 0, items: [] };
+  const TAG_COLORS = ['red', 'yellow', 'green', 'blue', 'purple', 'brown', 'gray']; // keep in sync with leanks_tag_colors() in tags.php
+  const LINKS_STATE_KEY = 'leanks-links-state';
+
+  function loadPersistedListState() {
+    try {
+      const raw = localStorage.getItem(LINKS_STATE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (e) {
+      return {};
+    }
+  }
+  function persistListState() {
+    try {
+      localStorage.setItem(LINKS_STATE_KEY, JSON.stringify({
+        page: state.page, perpage: state.perpage, search: state.search,
+        sort: state.sort, order: state.order, tag_id: state.tag_id,
+        view: state.view, columns: state.columns,
+      }));
+    } catch (e) { /* private mode / quota -- persistence is a nicety, not required */ }
+  }
+
+  let state = Object.assign(
+    {
+      page: 1, perpage: 50, search: '', sort: 'timestamp', order: 'DESC', tag_id: 0, total: 0, total_clicks: 0, items: [],
+      view: 'rows', // 'rows' | 'cards'
+      columns: { clicks: true, created: true, tags: true },
+    },
+    loadPersistedListState()
+  );
+  state.selected = new Set(); // never persisted -- selection is page-scoped and ephemeral
   let editingRow = null; // null = create mode, otherwise the row object being edited
+  let selectedTagIds = []; // tags picked in the create/edit link form
+  let tagsCache = null;
 
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -42,8 +74,9 @@
     $$('.nav-tab').forEach((t) => t.classList.toggle('active', t.dataset.view === view));
     $('#view-links').classList.toggle('hidden', view !== 'links');
     $('#view-analytics').classList.toggle('hidden', view !== 'analytics');
-    // Search/Import/Create are Links-view-only actions.
-    [$('#search-input').closest('.topbar-search'), $('#import-btn'), $('#create-btn')].forEach((el) => {
+    // Tags/Import/Create are Links-view-only actions; the toolbar (incl. search) lives inside
+    // #view-links itself now, so it's already hidden/shown along with the rest of that view.
+    [$('#tags-btn'), $('#import-btn'), $('#create-btn')].forEach((el) => {
       el.classList.toggle('hidden', view !== 'links');
     });
     if (view === 'analytics') Analytics.show();
@@ -62,82 +95,193 @@
   // ---------- list rendering ----------
   async function loadLinks() {
     const tbody = $('#links-tbody');
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:24px;"><div class="skeleton" style="height:40px;"></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;"><div class="skeleton" style="height:40px;"></div></td></tr>';
 
-    const data = await Api.listLinks({ search: state.search, page: state.page, perpage: state.perpage, sort: 'timestamp', order: 'DESC' });
-    state.items = data.items;
-    state.total = data.total;
+    const params = { search: state.search, page: state.page, perpage: state.perpage, sort: state.sort, order: state.order };
+    if (state.tag_id) params.tag_id = state.tag_id;
+    const data = await Api.listLinks(params);
 
-    $('#stat-total-links').textContent = data.total;
-    $('#stat-total-clicks').textContent = data.items.reduce((s, r) => s + r.clicks, 0) + (data.total > data.items.length ? '+' : '');
-
-    if (data.items.length === 0) {
-      tbody.innerHTML = '';
-      $('#empty-state').classList.remove('hidden');
-    } else {
-      $('#empty-state').classList.add('hidden');
-      tbody.innerHTML = data.items.map(renderRow).join('');
+    // A restored page can come back empty if the list shrank since the last visit -- reset to
+    // page 1 once rather than leaving the table permanently empty.
+    if (data.items.length === 0 && state.page > 1) {
+      state.page = 1;
+      persistListState();
+      return loadLinks();
     }
 
+    state.items = data.items;
+    state.total = data.total;
+    state.total_clicks = data.total_clicks;
+    state.selected.clear();
+
+    $('#stat-total-links').textContent = data.total;
+    $('#stat-total-clicks').textContent = data.total_clicks;
+
+    renderCurrentView();
     renderPagination();
-    bindRowEvents();
+    persistListState();
   }
 
-  function renderRow(row) {
+  // Re-renders the links list from already-fetched state.items -- used both after a fresh
+  // Api.listLinks() call and after a purely client-side display change (view mode, column
+  // visibility) that doesn't need a refetch.
+  function renderCurrentView() {
+    const isEmpty = state.items.length === 0;
+    $('#empty-state').classList.toggle('hidden', !isEmpty);
+    $('#links-rows-view').classList.toggle('hidden', state.view !== 'rows');
+    $('#links-cards-view').classList.toggle('hidden', state.view !== 'cards');
+    applyColumnVisibility();
+
+    if (state.view === 'cards') {
+      $('#links-cards-view').innerHTML = isEmpty ? '' : state.items.map(renderCard).join('');
+    } else {
+      $('#links-tbody').innerHTML = isEmpty ? '' : state.items.map(renderRow).join('');
+    }
+
+    renderBulkBar();
+    bindItemEvents();
+  }
+
+  function applyColumnVisibility() {
+    $('#links-rows-view').classList.toggle('hide-clicks', !state.columns.clicks);
+    $('#links-rows-view').classList.toggle('hide-created', !state.columns.created);
+  }
+
+  function faviconUrl(url) {
+    try {
+      return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(url).hostname)}&sz=32`;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function buildBadges(row) {
     const badges = [];
     if (row.has_password) badges.push('<span class="badge badge-blue">🔒 Password</span>');
     if (row.is_expired) badges.push('<span class="badge badge-red">Expired</span>');
     else if (row.expires_at) badges.push('<span class="badge badge-amber">Expires ' + formatDate(row.expires_at) + '</span>');
     if (row.max_clicks) badges.push('<span class="badge badge-gray">Limit ' + row.max_clicks + '</span>');
     if (row.utm && (row.utm.source || row.utm.campaign)) badges.push('<span class="badge badge-gray">UTM</span>');
+    if (state.columns.tags) {
+      (row.tags || []).forEach((t) => badges.push(`<span class="badge badge-${escAttr(t.color)}">${escHtml(t.name)}</span>`));
+    }
+    return badges;
+  }
+
+  function faviconHtml(row) {
+    const favicon = faviconUrl(row.url);
+    return favicon
+      ? `<img class="favicon" src="${escAttr(favicon)}" alt="" onerror="this.style.visibility='hidden'">`
+      : '<span class="favicon"></span>';
+  }
+
+  function linkCellTextHtml(row, badges) {
+    return `
+      <div class="link-cell-text">
+        <div class="short">
+          <a href="${escAttr(row.shorturl)}" target="_blank" rel="noopener">${escHtml(row.shorturl.replace(/^https?:\/\//, ''))}</a>
+          <button class="copy-btn" data-copy="${escAttr(row.shorturl)}" title="Copy">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+        <div class="dest" title="${escAttr(row.url)}">${escHtml(row.url)}</div>
+        ${badges.length ? '<div class="badge-row">' + badges.join('') + '</div>' : ''}
+      </div>`;
+  }
+
+  function rowActionsHtml() {
+    return `
+      <div class="row-actions">
+        <button class="btn btn-ghost btn-icon" data-action="qr" title="QR code">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM17 17h4v4h-4zM14 21h3M21 14v3"/></svg>
+        </button>
+        <button class="btn btn-ghost btn-icon" data-action="stats" title="Stats">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-6 4 3 5-8"/></svg>
+        </button>
+        <button class="btn btn-ghost btn-icon" data-action="edit" title="Edit">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        </button>
+        <button class="btn btn-ghost btn-icon" data-action="delete" title="Delete">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </button>
+      </div>`;
+  }
+
+  function renderRow(row) {
+    const badges = buildBadges(row);
+    const checked = state.selected.has(row.keyword) ? ' checked' : '';
 
     return `
       <tr data-keyword="${escAttr(row.keyword)}">
+        <td class="checkbox-cell"><input type="checkbox" class="row-checkbox"${checked}></td>
         <td class="link-cell">
-          <div class="short">
-            <a href="${escAttr(row.shorturl)}" target="_blank" rel="noopener">${escHtml(row.shorturl.replace(/^https?:\/\//, ''))}</a>
-            <button class="copy-btn" data-copy="${escAttr(row.shorturl)}" title="Copy">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-            </button>
-          </div>
-          <div class="dest" title="${escAttr(row.url)}">${escHtml(row.url)}</div>
-          ${badges.length ? '<div class="badge-row">' + badges.join('') + '</div>' : ''}
+          ${faviconHtml(row)}
+          ${linkCellTextHtml(row, badges)}
         </td>
-        <td class="clicks-cell">${row.clicks}</td>
-        <td style="color:var(--text-dim);font-size:0.82rem;">${formatDate(row.timestamp)}</td>
-        <td>
-          <div class="row-actions">
-            <button class="btn btn-ghost btn-icon" data-action="qr" title="QR code">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM17 17h4v4h-4zM14 21h3M21 14v3"/></svg>
-            </button>
-            <button class="btn btn-ghost btn-icon" data-action="stats" title="Stats">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-6 4 3 5-8"/></svg>
-            </button>
-            <button class="btn btn-ghost btn-icon" data-action="edit" title="Edit">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-            </button>
-            <button class="btn btn-ghost btn-icon" data-action="delete" title="Delete">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-            </button>
-          </div>
-        </td>
+        <td class="clicks-cell col-clicks">${row.clicks}</td>
+        <td class="col-created" style="color:var(--text-dim);font-size:0.82rem;">${formatDate(row.timestamp)}</td>
+        <td>${rowActionsHtml()}</td>
       </tr>`;
   }
 
-  function bindRowEvents() {
-    $$('#links-tbody tr[data-keyword]').forEach((tr) => {
-      const keyword = tr.dataset.keyword;
+  function renderCard(row) {
+    const badges = buildBadges(row);
+    const checked = state.selected.has(row.keyword) ? ' checked' : '';
+    const footerParts = [];
+    if (state.columns.clicks) footerParts.push(`${row.clicks} click${row.clicks === 1 ? '' : 's'}`);
+    if (state.columns.created) footerParts.push(formatDate(row.timestamp));
+
+    return `
+      <div class="link-card" data-keyword="${escAttr(row.keyword)}">
+        <div class="link-card-top">
+          <input type="checkbox" class="row-checkbox"${checked}>
+          ${faviconHtml(row)}
+          ${linkCellTextHtml(row, badges)}
+        </div>
+        <div class="link-card-actions">${rowActionsHtml()}</div>
+        ${footerParts.length ? `<div class="link-card-footer"><span>${footerParts.join(' · ')}</span></div>` : ''}
+      </div>`;
+  }
+
+  function bindItemEvents() {
+    const items = state.view === 'cards' ? $$('#links-cards-view .link-card') : $$('#links-tbody tr[data-keyword]');
+    items.forEach((el) => {
+      const keyword = el.dataset.keyword;
       const row = state.items.find((r) => r.keyword === keyword);
 
-      tr.querySelector('[data-copy]')?.addEventListener('click', (e) => {
+      el.querySelector('.row-checkbox')?.addEventListener('change', (e) => {
+        if (e.target.checked) state.selected.add(keyword);
+        else state.selected.delete(keyword);
+        renderBulkBar();
+        updateSelectAllCheckbox();
+      });
+
+      el.querySelector('[data-copy]')?.addEventListener('click', (e) => {
         e.preventDefault();
         navigator.clipboard.writeText(row.shorturl).then(() => toast('Copied to clipboard'));
       });
-      tr.querySelector('[data-action="qr"]')?.addEventListener('click', () => showQr(row));
-      tr.querySelector('[data-action="stats"]')?.addEventListener('click', () => showStats(row));
-      tr.querySelector('[data-action="edit"]')?.addEventListener('click', () => openEdit(row));
-      tr.querySelector('[data-action="delete"]')?.addEventListener('click', () => confirmDelete(row));
+      el.querySelector('[data-action="qr"]')?.addEventListener('click', () => showQr(row));
+      el.querySelector('[data-action="stats"]')?.addEventListener('click', () => showStats(row));
+      el.querySelector('[data-action="edit"]')?.addEventListener('click', () => openEdit(row));
+      el.querySelector('[data-action="delete"]')?.addEventListener('click', () => confirmDelete(row));
     });
+    updateSelectAllCheckbox();
+  }
+
+  function updateSelectAllCheckbox() {
+    const scope = state.view === 'cards' ? '#links-cards-view' : '#links-tbody';
+    const boxes = $$(`${scope} .row-checkbox`);
+    const checkedCount = boxes.filter((b) => b.checked).length;
+    const el = $('#select-all-checkbox');
+    el.checked = boxes.length > 0 && checkedCount === boxes.length;
+    el.indeterminate = checkedCount > 0 && checkedCount < boxes.length;
+  }
+
+  // ---------- batch select / bulk delete ----------
+  function renderBulkBar() {
+    const n = state.selected.size;
+    $('#bulk-bar').classList.toggle('hidden', n === 0);
+    if (n > 0) $('#bulk-count').textContent = `${n} link${n === 1 ? '' : 's'} selected`;
   }
 
   function renderPagination() {
@@ -165,6 +309,123 @@
     }, 300);
   });
 
+  // ---------- links-list toolbar: Filter (tag) + Display (sort/rows-per-page) ----------
+  async function ensureTagsLoaded(force) {
+    if (tagsCache && !force) return tagsCache;
+    try {
+      const res = await Api.listTags();
+      tagsCache = res.tags || [];
+    } catch (e) {
+      tagsCache = [];
+    }
+    return tagsCache;
+  }
+
+  function updateLinksFilterButtonLabel() {
+    $('#links-filter-btn').textContent = state.tag_id ? 'Filter (1)' : 'Filter';
+  }
+
+  function bindListToolbar() {
+    $('#links-filter-btn').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (UI.popoverKind() === 'links-filter') { UI.closePopover(); return; }
+      UI.reserveKind('links-filter');
+      const tags = await ensureTagsLoaded();
+      if (UI.popoverKind() !== 'links-filter') return;
+      renderLinksFilterPopover(tags);
+    });
+    $('#links-display-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (UI.popoverKind() === 'links-display') { UI.closePopover(); return; }
+      renderLinksDisplayPopover();
+    });
+  }
+
+  function renderLinksFilterPopover(tags) {
+    const options = tags.map((t) => `<option value="${t.id}"${t.id === state.tag_id ? ' selected' : ''}>${escHtml(t.name)}</option>`).join('');
+    const html = `
+      <div class="filter-form">
+        <div class="field"><label>Tag</label><select id="lf-tag"><option value="0">Any</option>${options}</select></div>
+        <div class="popover-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="lf-clear">Clear</button>
+          <button type="button" class="btn btn-primary btn-sm" id="lf-apply">Apply</button>
+        </div>
+      </div>`;
+    UI.openPopover($('#links-filter-btn'), html, 'links-filter');
+    $('#lf-apply').addEventListener('click', () => {
+      state.tag_id = parseInt($('#lf-tag').value, 10) || 0;
+      state.page = 1;
+      UI.closePopover();
+      updateLinksFilterButtonLabel();
+      loadLinks();
+    });
+    $('#lf-clear').addEventListener('click', () => {
+      state.tag_id = 0;
+      state.page = 1;
+      UI.closePopover();
+      updateLinksFilterButtonLabel();
+      loadLinks();
+    });
+  }
+
+  const SORT_OPTIONS = [
+    { sort: 'timestamp', order: 'DESC', label: 'Date created (newest)' },
+    { sort: 'timestamp', order: 'ASC', label: 'Date created (oldest)' },
+    { sort: 'clicks', order: 'DESC', label: 'Clicks (most)' },
+    { sort: 'clicks', order: 'ASC', label: 'Clicks (fewest)' },
+    { sort: 'keyword', order: 'ASC', label: 'Alphabetical (A-Z)' },
+    { sort: 'keyword', order: 'DESC', label: 'Alphabetical (Z-A)' },
+  ];
+
+  function renderLinksDisplayPopover() {
+    const sortOptions = SORT_OPTIONS.map((o) => `<option value="${o.sort}:${o.order}"${o.sort === state.sort && o.order === state.order ? ' selected' : ''}>${o.label}</option>`).join('');
+    const perpageOptions = [10, 20, 50, 100].map((n) => `<option value="${n}"${n === state.perpage ? ' selected' : ''}>${n}</option>`).join('');
+    const html = `
+      <div class="filter-form">
+        <div class="view-toggle">
+          <button type="button" class="${state.view === 'rows' ? 'active' : ''}" data-view-mode="rows">Rows</button>
+          <button type="button" class="${state.view === 'cards' ? 'active' : ''}" data-view-mode="cards">Cards</button>
+        </div>
+        <div class="field"><label>Ordering</label><select id="ld-sort">${sortOptions}</select></div>
+        <div class="field"><label>Rows per page</label><select id="ld-perpage">${perpageOptions}</select></div>
+        <div class="field">
+          <label>Display properties</label>
+          <div class="display-properties">
+            <label><input type="checkbox" id="ld-col-clicks"${state.columns.clicks ? ' checked' : ''}> Clicks</label>
+            <label><input type="checkbox" id="ld-col-created"${state.columns.created ? ' checked' : ''}> Created date</label>
+            <label><input type="checkbox" id="ld-col-tags"${state.columns.tags ? ' checked' : ''}> Tags</label>
+          </div>
+        </div>
+      </div>`;
+    UI.openPopover($('#links-display-btn'), html, 'links-display');
+
+    $$('[data-view-mode]').forEach((btn) => btn.addEventListener('click', () => {
+      state.view = btn.dataset.viewMode;
+      $$('[data-view-mode]').forEach((b) => b.classList.toggle('active', b === btn));
+      renderCurrentView();
+      persistListState();
+    }));
+    $('#ld-sort').addEventListener('change', (e) => {
+      const [sort, order] = e.target.value.split(':');
+      state.sort = sort;
+      state.order = order;
+      state.page = 1;
+      loadLinks();
+    });
+    $('#ld-perpage').addEventListener('change', (e) => {
+      state.perpage = parseInt(e.target.value, 10) || 50;
+      state.page = 1;
+      loadLinks();
+    });
+    [['ld-col-clicks', 'clicks'], ['ld-col-created', 'created'], ['ld-col-tags', 'tags']].forEach(([id, key]) => {
+      $('#' + id).addEventListener('change', (e) => {
+        state.columns[key] = e.target.checked;
+        renderCurrentView();
+        persistListState();
+      });
+    });
+  }
+
   // ---------- create / edit modal ----------
   function bindEvents() {
     $('#create-btn').addEventListener('click', openCreate);
@@ -180,11 +441,37 @@
       $('#' + id).addEventListener('input', updateUtmPreview);
     });
 
+    $('#f-tags-btn').addEventListener('click', (e) => { e.stopPropagation(); openTagPicker(); });
+
     $('#link-form').addEventListener('submit', onSubmitLinkForm);
     $('#confirm-delete-btn').addEventListener('click', onConfirmDelete);
     $('#qr-download').addEventListener('click', downloadQr);
 
     $('#import-btn').addEventListener('click', openImport);
+    $('#tags-btn').addEventListener('click', openTagsModal);
+    $('#settings-btn').addEventListener('click', openSettingsModal);
+    $('#settings-save-btn').addEventListener('click', onSaveSettings);
+
+    bindListToolbar();
+    updateLinksFilterButtonLabel();
+
+    $('#select-all-checkbox').addEventListener('change', (e) => {
+      $$('#links-tbody .row-checkbox').forEach((box) => {
+        box.checked = e.target.checked;
+        const keyword = box.closest('tr').dataset.keyword;
+        if (e.target.checked) state.selected.add(keyword);
+        else state.selected.delete(keyword);
+      });
+      renderBulkBar();
+    });
+    $('#bulk-cancel-btn').addEventListener('click', () => {
+      state.selected.clear();
+      $$('#links-tbody .row-checkbox').forEach((b) => { b.checked = false; });
+      $('#select-all-checkbox').checked = false;
+      $('#select-all-checkbox').indeterminate = false;
+      renderBulkBar();
+    });
+    $('#bulk-delete-btn').addEventListener('click', confirmBulkDelete);
 
     $('#update-banner-view').addEventListener('click', () => {
       if (latestUpdateInfo && latestUpdateInfo.html_url) window.open(latestUpdateInfo.html_url, '_blank', 'noopener');
@@ -201,6 +488,8 @@
     $('#f-password-wrap').classList.add('hidden');
     $('#advanced-section').removeAttribute('open');
     $('#utm-preview').style.display = 'none';
+    selectedTagIds = [];
+    renderSelectedTagChips();
   }
 
   function openCreate() {
@@ -238,12 +527,79 @@
     $('#f-utm-term').value = u.term || '';
     $('#f-utm-content').value = u.content || '';
 
-    if (row.has_password || row.expires_at || row.max_clicks || u.source || u.campaign) {
+    selectedTagIds = (row.tags || []).map((t) => t.id);
+    renderSelectedTagChips();
+
+    if (row.has_password || row.expires_at || row.max_clicks || u.source || u.campaign || selectedTagIds.length) {
       $('#advanced-section').setAttribute('open', '');
     }
 
     updateUtmPreview();
     openModal('link-modal-backdrop');
+  }
+
+  // ---------- tag picker (inside the create/edit link form) ----------
+  function renderSelectedTagChips() {
+    const tags = tagsCache || [];
+    $('#f-selected-tags').innerHTML = selectedTagIds.map((id) => {
+      const t = tags.find((x) => x.id === id);
+      if (!t) return '';
+      return `<span class="badge badge-${escAttr(t.color)} tag-chip-removable" data-remove-tag="${t.id}">${escHtml(t.name)} &times;</span>`;
+    }).join('');
+    $$('#f-selected-tags [data-remove-tag]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const id = parseInt(el.dataset.removeTag, 10);
+        selectedTagIds = selectedTagIds.filter((x) => x !== id);
+        renderSelectedTagChips();
+      });
+    });
+  }
+
+  async function openTagPicker() {
+    if (UI.popoverKind() === 'tag-picker') { UI.closePopover(); return; }
+    UI.reserveKind('tag-picker');
+    const tags = await ensureTagsLoaded(true); // refresh -- a tag may have just been added/removed elsewhere
+    if (UI.popoverKind() !== 'tag-picker') return;
+    renderTagPickerPopover(tags);
+    renderSelectedTagChips(); // labels/colors may have changed since selectedTagIds was set
+  }
+
+  function renderTagPickerPopover(tags) {
+    const rows = tags.length ? tags.map((t) => `
+      <label class="tag-picker-row">
+        <input type="checkbox" value="${t.id}"${selectedTagIds.includes(t.id) ? ' checked' : ''}>
+        <span class="badge badge-${escAttr(t.color)}">${escHtml(t.name)}</span>
+      </label>`).join('') : '<div class="mini-row"><span>No tags yet</span></div>';
+
+    const html = `
+      <div class="filter-form">
+        ${rows}
+        <div class="tag-picker-new">
+          <input type="text" id="tp-new-name" placeholder="New tag name">
+          <button type="button" class="btn btn-secondary btn-sm" id="tp-new-add">Add</button>
+        </div>
+      </div>`;
+    UI.openPopover($('#f-tags-btn'), html, 'tag-picker');
+
+    $$('.tag-picker-row input[type=checkbox]').forEach((box) => {
+      box.addEventListener('change', (e) => {
+        const id = parseInt(e.target.value, 10);
+        if (e.target.checked) selectedTagIds.push(id);
+        else selectedTagIds = selectedTagIds.filter((x) => x !== id);
+        renderSelectedTagChips();
+      });
+    });
+
+    $('#tp-new-add').addEventListener('click', async () => {
+      const name = $('#tp-new-name').value.trim();
+      if (!name) return;
+      const res = await Api.createTag(name, 'gray');
+      if (!res.success) { toast(res.message || 'Could not create tag', true); return; }
+      selectedTagIds.push(res.id);
+      const tags2 = await ensureTagsLoaded(true);
+      renderTagPickerPopover(tags2);
+      renderSelectedTagChips();
+    });
   }
 
   function stripUtmParams(url) {
@@ -311,15 +667,23 @@
           password: passwordEnabled ? passwordValue : '',
           expires_at: expires ? expires.replace('T', ' ') : '',
           max_clicks: maxClicks || '',
+          tag_ids: selectedTagIds.join(','),
           ...utm,
         });
         if (res.status !== 'success') throw new Error(res.message || 'Could not create link');
         toast('Link created');
       } else {
-        const editRes = await Api.editLink(editingRow, { url: finalUrl, keyword: keyword || editingRow.keyword, title });
-        if (editRes.status && editRes.status !== 'success') throw new Error(editRes.message || 'Could not save link');
+        const newKeyword = keyword || editingRow.keyword;
+        // Stock YOURLS' edit_save reports "fail" when its UPDATE affects 0 rows -- which MySQL
+        // does whenever url/keyword/title are all unchanged (e.g. this edit only touches tags,
+        // UTM, expiration or password). Skip the call entirely in that case rather than treating
+        // a no-op as an error.
+        if (finalUrl !== editingRow.url || newKeyword !== editingRow.keyword || title !== (editingRow.title || '')) {
+          const editRes = await Api.editLink(editingRow, { url: finalUrl, keyword: newKeyword, title });
+          if (editRes.status && editRes.status !== 'success') throw new Error(editRes.message || 'Could not save link');
+        }
 
-        const metaFields = { keyword: keyword || editingRow.keyword, expires_at: expires ? expires.replace('T', ' ') : '', max_clicks: maxClicks || '', ...utm };
+        const metaFields = { keyword: newKeyword, expires_at: expires ? expires.replace('T', ' ') : '', max_clicks: maxClicks || '', tag_ids: selectedTagIds.join(','), ...utm };
         if (passwordEnabled && passwordValue) metaFields.password = passwordValue;
         else if (!passwordEnabled) metaFields.remove_password = '1';
         await Api.saveMeta(metaFields);
@@ -343,7 +707,9 @@
     $('#import-body').innerHTML = `
       <p style="font-size:0.85rem;color:var(--text-dim);margin-top:0;">
         Works with dub.co's own CSV export/import format (Destination URL, Short link, Title,
-        Creation date) -- or any CSV with similarly named columns.
+        Creation date, Clicks, Tags) -- or any CSV with similarly named columns. A Clicks column
+        sets each link's starting click count; a Tags column (comma-separated) creates/assigns
+        tags. Imported click counts won't have Analytics breakdowns for clicks before the import.
       </p>
       <div class="field">
         <label for="import-file">CSV file</label>
@@ -505,23 +871,48 @@
     }
   }
 
-  // ---------- delete ----------
+  // ---------- delete (single row or, via the bulk-action bar, multiple rows at once) ----------
   let pendingDelete = null;
+  let pendingBulkKeywords = null;
+
   function confirmDelete(row) {
     pendingDelete = row;
+    pendingBulkKeywords = null;
+    $('#delete-modal-title').textContent = 'Delete link?';
+    $('#delete-modal-text').textContent = "This can't be undone. The short link will stop working immediately.";
     openModal('delete-modal-backdrop');
   }
+
+  function confirmBulkDelete() {
+    const n = state.selected.size;
+    if (n === 0) return;
+    pendingDelete = null;
+    pendingBulkKeywords = Array.from(state.selected);
+    $('#delete-modal-title').textContent = `Delete ${n} link${n === 1 ? '' : 's'}?`;
+    $('#delete-modal-text').textContent = "This can't be undone. All selected short links will stop working immediately.";
+    openModal('delete-modal-backdrop');
+  }
+
   async function onConfirmDelete() {
-    if (!pendingDelete) return;
+    const btn = $('#confirm-delete-btn');
+    btn.disabled = true;
     try {
-      await Api.deleteLink(pendingDelete);
-      toast('Link deleted');
+      if (pendingBulkKeywords) {
+        const rows = pendingBulkKeywords.map((kw) => state.items.find((r) => r.keyword === kw)).filter(Boolean);
+        await Promise.all(rows.map((row) => Api.deleteLink(row)));
+        toast(`Deleted ${rows.length} link${rows.length === 1 ? '' : 's'}`);
+      } else if (pendingDelete) {
+        await Api.deleteLink(pendingDelete);
+        toast('Link deleted');
+      }
       closeModal('delete-modal-backdrop');
       loadLinks();
     } catch (err) {
-      toast('Could not delete link', true);
+      toast('Could not delete', true);
     }
+    btn.disabled = false;
     pendingDelete = null;
+    pendingBulkKeywords = null;
   }
 
   // ---------- stats ----------
@@ -567,6 +958,128 @@
     link.download = (currentQrRow ? currentQrRow.keyword : 'qrcode') + '.png';
     link.href = img.tagName === 'CANVAS' ? img.toDataURL('image/png') : img.src;
     link.click();
+  }
+
+  // ---------- tags management modal ----------
+  function colorLabel(c) { return c.charAt(0).toUpperCase() + c.slice(1); }
+
+  function colorPillsHtml(activeColor) {
+    return TAG_COLORS.map((c) => `<button type="button" class="color-pill pill-${c}${c === activeColor ? ' active' : ''}" data-color="${c}">${colorLabel(c)}</button>`).join('');
+  }
+
+  async function openTagsModal() {
+    $('#tags-body').innerHTML = 'Loading…';
+    openModal('tags-modal-backdrop');
+    await renderTagsModalBody();
+  }
+
+  async function renderTagsModalBody() {
+    const tags = await ensureTagsLoaded(true);
+
+    const rows = tags.length ? tags.map((t) => `
+      <div class="tag-row">
+        <span class="badge badge-${escAttr(t.color)}">${escHtml(t.name)}</span>
+        <span class="tag-row-count">${t.link_count} link${t.link_count === 1 ? '' : 's'}</span>
+        <div class="tag-row-actions">
+          <button type="button" class="btn btn-ghost btn-sm" data-edit="${t.id}">Rename</button>
+          <button type="button" class="btn btn-ghost btn-sm" data-delete="${t.id}">Delete</button>
+        </div>
+      </div>`).join('') : '<div class="mini-row"><span>No tags yet</span></div>';
+
+    $('#tags-body').innerHTML = `
+      <div class="tags-list-header">
+        <button type="button" class="btn btn-primary btn-sm" id="tag-new-btn">+ New tag</button>
+      </div>
+      <div class="tag-list">${rows}</div>`;
+
+    $('#tag-new-btn').addEventListener('click', () => openTagEditModal(null));
+    $$('[data-edit]').forEach((btn) => {
+      const tag = tags.find((t) => t.id === parseInt(btn.dataset.edit, 10));
+      btn.addEventListener('click', () => openTagEditModal(tag));
+    });
+    $$('[data-delete]').forEach((btn) => btn.addEventListener('click', async () => {
+      if (btn.dataset.confirming) {
+        const res = await Api.deleteTag(btn.dataset.delete);
+        if (res.success) { toast('Tag deleted'); await renderTagsModalBody(); loadLinks(); }
+      } else {
+        btn.dataset.confirming = '1';
+        btn.textContent = 'Confirm?';
+        setTimeout(() => { delete btn.dataset.confirming; btn.textContent = 'Delete'; }, 3000);
+      }
+    }));
+  }
+
+  // Shared "New tag" / "Edit tag" dialog -- pass null to create, or an existing tag to rename/recolor it.
+  function openTagEditModal(tag) {
+    closeModal('tags-modal-backdrop');
+    $('#tag-edit-modal-title').textContent = tag ? 'Edit tag' : 'New tag';
+    $('#te-name').value = tag ? tag.name : '';
+    let selectedColor = tag ? tag.color : 'gray';
+    $('#te-colors').innerHTML = colorPillsHtml(selectedColor);
+    $$('#te-colors .color-pill').forEach((pill) => pill.addEventListener('click', () => {
+      selectedColor = pill.dataset.color;
+      $$('#te-colors .color-pill').forEach((p) => p.classList.toggle('active', p === pill));
+    }));
+
+    const saveBtn = $('#te-save');
+    const onSave = async () => {
+      const name = $('#te-name').value.trim();
+      if (!name) { toast('Tag name is required', true); return; }
+      const res = tag
+        ? await Api.updateTag(tag.id, { name, color: selectedColor })
+        : await Api.createTag(name, selectedColor);
+      if (!res.success) { toast(res.message || 'Could not save tag', true); return; }
+      toast(tag ? 'Tag updated' : 'Tag created');
+      closeModal('tag-edit-modal-backdrop');
+      openModal('tags-modal-backdrop');
+      await renderTagsModalBody();
+      loadLinks();
+    };
+    saveBtn.replaceWith(saveBtn.cloneNode(true)); // drop any listener from a previous open
+    $('#te-save').addEventListener('click', onSave);
+
+    openModal('tag-edit-modal-backdrop');
+    $('#te-name').focus();
+  }
+
+  // The edit dialog is always opened from the tags list (never standalone), so cancelling it --
+  // via the × icon, the Cancel button, or a backdrop click -- should return to that list rather
+  // than just closing everything. These bypass the generic [data-close] delegated handler (which
+  // indiscriminately hides *every* modal-backdrop) on purpose, since re-showing the list has to
+  // happen *after* this modal is hidden, not race it.
+  function cancelTagEditModal() {
+    closeModal('tag-edit-modal-backdrop');
+    openModal('tags-modal-backdrop');
+  }
+  $('#tag-edit-close').addEventListener('click', cancelTagEditModal);
+  $('#tag-edit-cancel').addEventListener('click', cancelTagEditModal);
+  $('#tag-edit-modal-backdrop').addEventListener('click', (e) => {
+    if (e.target === $('#tag-edit-modal-backdrop')) cancelTagEditModal();
+  });
+
+  // ---------- settings modal ----------
+  async function openSettingsModal() {
+    $('#s-default-redirect').value = '';
+    openModal('settings-modal-backdrop');
+    try {
+      const res = await Api.getSettings();
+      $('#s-default-redirect').value = res.default_redirect || '';
+    } catch (e) { /* leave blank -- not fatal */ }
+  }
+
+  async function onSaveSettings() {
+    const btn = $('#settings-save-btn');
+    btn.disabled = true;
+    try {
+      const res = await Api.saveSettings({ default_redirect: $('#s-default-redirect').value.trim() });
+      if (!res.success) throw new Error(res.message || 'Could not save settings');
+      toast('Settings saved');
+      closeModal('settings-modal-backdrop');
+    } catch (err) {
+      toast(err.message || 'Could not save settings', true);
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   // ---------- utils ----------

@@ -39,7 +39,6 @@ const Analytics = (function () {
     initialized: false,
   };
   let filterOptionsCache = null;
-  let currentPopoverKind = null;
   let activeTab = {
     'an-rows-links': 'short_links',
     'an-rows-referrers': 'referrers',
@@ -47,34 +46,6 @@ const Analytics = (function () {
     'an-rows-devices': 'devices',
   };
   let activeUtmField = 'source';
-
-  // ---------- popover (generic, anchored -- reused by the range picker and filter picker) ----------
-  function openPopover(anchorEl, html, kind) {
-    currentPopoverKind = kind;
-    const pop = $('#popover');
-    pop.innerHTML = html;
-    pop.classList.remove('hidden');
-    const rect = anchorEl.getBoundingClientRect();
-    pop.style.top = (rect.bottom + window.scrollY + 6) + 'px';
-    pop.style.left = (rect.left + window.scrollX) + 'px';
-  }
-  function closePopover() {
-    currentPopoverKind = null;
-    const pop = $('#popover');
-    if (!pop) return;
-    pop.classList.add('hidden');
-    pop.innerHTML = '';
-  }
-  document.addEventListener('click', (e) => {
-    const pop = $('#popover');
-    if (!pop || pop.classList.contains('hidden')) return;
-    if (pop.contains(e.target)) return;
-    if (e.target.closest('#an-range-btn') || e.target.closest('#an-filter-btn')) return;
-    closePopover();
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closePopover();
-  });
 
   // ---------- range picker ----------
   function updateRangeButtonLabel() {
@@ -94,12 +65,12 @@ const Analytics = (function () {
         <input type="date" id="an-range-end" value="${escAttr(state.end)}">
         <button type="button" class="btn btn-primary btn-sm" id="an-range-apply">Apply</button>
       </div>` : '';
-    openPopover($('#an-range-btn'), `<div class="popover-list">${rows}</div>${customFields}`, 'range');
+    UI.openPopover($('#an-range-btn'), `<div class="popover-list">${rows}</div>${customFields}`, 'range');
 
     $$('.popover-item[data-range]').forEach((btn) => btn.addEventListener('click', () => {
       state.range = btn.dataset.range;
       if (state.range !== 'custom') {
-        closePopover();
+        UI.closePopover();
         updateRangeButtonLabel();
         load();
       } else {
@@ -110,7 +81,7 @@ const Analytics = (function () {
       state.start = $('#an-range-start').value;
       state.end = $('#an-range-end').value;
       if (!state.start || !state.end) return;
-      closePopover();
+      UI.closePopover();
       updateRangeButtonLabel();
       load();
     });
@@ -139,9 +110,9 @@ const Analytics = (function () {
   }
 
   async function openFilterPopover() {
-    currentPopoverKind = 'filter';
+    UI.reserveKind('filter');
     const opts = await ensureFilterOptionsLoaded();
-    if (currentPopoverKind !== 'filter') return; // popover was closed while options were loading
+    if (UI.popoverKind() !== 'filter') return; // popover was closed while options were loading
     renderFilterPopoverBody(opts);
   }
 
@@ -164,7 +135,7 @@ const Analytics = (function () {
           <button type="button" class="btn btn-primary btn-sm" id="fl-apply">Apply</button>
         </div>
       </div>`;
-    openPopover($('#an-filter-btn'), html, 'filter');
+    UI.openPopover($('#an-filter-btn'), html, 'filter');
 
     let linkSearchTimer;
     $('#fl-link').addEventListener('input', (e) => {
@@ -192,13 +163,13 @@ const Analytics = (function () {
         os: $('#fl-os').value,
         referrer: $('#fl-referrer').value,
       };
-      closePopover();
+      UI.closePopover();
       updateFilterButtonLabel();
       load();
     });
     $('#fl-clear').addEventListener('click', () => {
       state.filters = { link: '', country: '', continent: '', device: '', browser: '', os: '', referrer: '' };
-      closePopover();
+      UI.closePopover();
       updateFilterButtonLabel();
       load();
     });
@@ -207,12 +178,12 @@ const Analytics = (function () {
   function bindTopControls() {
     $('#an-range-btn').addEventListener('click', (e) => {
       e.stopPropagation();
-      if (currentPopoverKind === 'range') { closePopover(); return; }
+      if (UI.popoverKind() === 'range') { UI.closePopover(); return; }
       openRangePopover();
     });
     $('#an-filter-btn').addEventListener('click', (e) => {
       e.stopPropagation();
-      if (currentPopoverKind === 'filter') { closePopover(); return; }
+      if (UI.popoverKind() === 'filter') { UI.closePopover(); return; }
       openFilterPopover();
     });
   }
