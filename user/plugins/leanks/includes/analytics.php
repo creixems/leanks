@@ -301,6 +301,7 @@ function leanks_analytics_overview_sql_path( array $filters, $since, $until, $bu
     foreach ( $shortLinkRows as $keyword => $c ) {
         $shortLinks[] = [ 'keyword' => $keyword, 'shorturl' => yourls_link( $keyword ), 'c' => (int) $c ];
     }
+    $shortLinks = leanks_analytics_add_destinations( $shortLinks );
 
     $destRows = $db->fetchPairs(
         "SELECT u.url AS url, COUNT(*) AS c FROM `$log` l JOIN `$url` u ON u.keyword = l.shorturl
@@ -331,7 +332,7 @@ function leanks_analytics_overview_sql_path( array $filters, $since, $until, $bu
          GROUP BY l.country_code ORDER BY c DESC LIMIT 8",
         $binds
     );
-    $countries = leanks_analytics_pairs_to_rows( $countryRows, 'code' );
+    $countries = leanks_analytics_add_country_names( leanks_analytics_pairs_to_rows( $countryRows, 'code' ) );
 
     $allCountryRows = $db->fetchPairs(
         "SELECT l.country_code AS code, COUNT(*) AS c FROM `$log` l WHERE $where AND l.country_code != '' GROUP BY l.country_code",
@@ -468,6 +469,7 @@ function leanks_analytics_overview_scan_path( array $filters, $since, $until, $b
     foreach ( leanks_analytics_top( $keywordCounts, 8 ) as $keyword => $c ) {
         $shortLinks[] = [ 'keyword' => $keyword, 'shorturl' => yourls_link( $keyword ), 'c' => $c ];
     }
+    $shortLinks = leanks_analytics_add_destinations( $shortLinks );
 
     $utm = [];
     foreach ( $utmCounts as $field => $counts ) {
@@ -481,7 +483,7 @@ function leanks_analytics_overview_scan_path( array $filters, $since, $until, $b
         'destination_urls' => leanks_analytics_pairs_to_rows( leanks_analytics_top( $urlCounts, 8 ), 'url' ),
         'referrers' => leanks_analytics_pairs_to_rows( leanks_analytics_top( $referrerCounts, 8 ), 'referrer' ),
         'utm' => $utm,
-        'countries' => leanks_analytics_pairs_to_rows( leanks_analytics_top( $countryCounts, 8 ), 'code' ),
+        'countries' => leanks_analytics_add_country_names( leanks_analytics_pairs_to_rows( leanks_analytics_top( $countryCounts, 8 ), 'code' ) ),
         'continents' => leanks_analytics_collapse_continents( $countryCounts ),
         'devices' => leanks_analytics_pairs_to_rows( leanks_analytics_top( $deviceCounts, 8 ), 'name' ),
         'browsers' => leanks_analytics_pairs_to_rows( leanks_analytics_top( $browserCounts, 8 ), 'name' ),
@@ -500,6 +502,48 @@ function leanks_analytics_pairs_to_rows( array $pairs, $keyName ) {
         $rows[] = [ $keyName => $key, 'c' => (int) $c ];
     }
     return $rows;
+}
+
+/**
+ * Adds a `name` field to a set of {code, c} country rows, via core's own code -> country name
+ * map (includes/functions-geo.php) -- falls back to the raw code for anything it doesn't
+ * recognize (eg the 'A1'/'A2'/'O1' MaxMind pseudo-codes) rather than leaving it blank.
+ */
+function leanks_analytics_add_country_names( array $rows ) {
+    foreach ( $rows as &$row ) {
+        $name = yourls_geo_countrycode_to_countryname( $row['code'] );
+        $row['name'] = $name !== '' ? $name : $row['code'];
+    }
+    return $rows;
+}
+
+/**
+ * Adds a `dest` field (the link's destination URL) to a set of {keyword, shorturl, c} short-link
+ * rows, via one small IN() query over just the (already top-8-capped) keywords shown -- so the
+ * frontend can render a favicon for each without a per-row request.
+ */
+function leanks_analytics_add_destinations( array $shortLinks ) {
+    $keywords = array_column( $shortLinks, 'keyword' );
+    if ( empty( $keywords ) ) {
+        return $shortLinks;
+    }
+
+    $placeholders = [];
+    $binds = [];
+    foreach ( $keywords as $i => $kw ) {
+        $placeholders[] = ":kw_$i";
+        $binds[ "kw_$i" ] = $kw;
+    }
+
+    $rows = yourls_get_db( 'read-leanks_analytics_destinations' )->fetchPairs(
+        'SELECT keyword, url FROM `' . YOURLS_DB_TABLE_URL . '` WHERE keyword IN (' . implode( ',', $placeholders ) . ')',
+        $binds
+    );
+
+    foreach ( $shortLinks as &$row ) {
+        $row['dest'] = $rows[ $row['keyword'] ] ?? '';
+    }
+    return $shortLinks;
 }
 
 function leanks_analytics_top( array $counts, $limit ) {

@@ -227,6 +227,12 @@ select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-bg); 
   overflow: hidden;
 }
 
+/* .card's `overflow: hidden` clips both axes for its rounded corners, but on a narrow viewport
+   the table is wider than the card -- override just the x-axis so columns past "Link" become
+   reachable by scrolling instead of being silently cut off. A no-op on wide screens, since the
+   table already fits and never triggers a scrollbar there. */
+#links-rows-view { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
 table.links-table { width: 100%; border-collapse: collapse; }
 .links-table thead th {
   text-align: left; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em;
@@ -251,6 +257,19 @@ table.links-table { width: 100%; border-collapse: collapse; }
 
 #links-rows-view.hide-clicks .col-clicks { display: none; }
 #links-rows-view.hide-created .col-created { display: none; }
+#links-rows-view.hide-tags .col-tags { display: none; }
+
+.col-tags { max-width: 220px; }
+.col-tags .badge-row { margin-top: 0; }
+
+.th-sort {
+  display: inline-flex; align-items: center; gap: 4px; border: none; background: transparent; cursor: pointer;
+  padding: 0; font: inherit; text-transform: inherit; letter-spacing: inherit; color: inherit;
+}
+.th-sort-arrow { opacity: 0.35; transition: transform 0.15s ease; flex-shrink: 0; }
+.th-sort.active .th-sort-arrow { opacity: 1; }
+.th-sort.active.desc .th-sort-arrow { transform: rotate(0deg); }
+.th-sort.active.asc .th-sort-arrow { transform: rotate(180deg); }
 
 .checkbox-cell { width: 36px; padding-right: 0 !important; }
 .checkbox-cell input[type=checkbox], .row-checkbox { width: 15px; height: 15px; cursor: pointer; }
@@ -463,6 +482,12 @@ details.advanced[open] > summary { color: var(--text); }
 }
 .breakdown-row-label { position: relative; z-index: 1; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .breakdown-row-count { position: relative; z-index: 1; font-variant-numeric: tabular-nums; font-weight: 600; flex-shrink: 0; }
+.breakdown-row-icon {
+  position: relative; z-index: 1; flex-shrink: 0; width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center; color: var(--text-dim);
+}
+.breakdown-row-icon img.row-icon-favicon { width: 14px; height: 14px; border-radius: 3px; display: block; }
+.breakdown-row-icon .row-icon-flag { font-size: 0.95rem; line-height: 1; }
 
 /* Links-list toolbar (Filter / Display / search) + bulk-select action bar */
 

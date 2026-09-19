@@ -95,7 +95,7 @@
   // ---------- list rendering ----------
   async function loadLinks() {
     const tbody = $('#links-tbody');
-    tbody.innerHTML = '<tr><td colspan="5" style="padding:24px;"><div class="skeleton" style="height:40px;"></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:24px;"><div class="skeleton" style="height:40px;"></div></td></tr>';
 
     const params = { search: state.search, page: state.page, perpage: state.perpage, sort: state.sort, order: state.order };
     if (state.tag_id) params.tag_id = state.tag_id;
@@ -119,6 +119,7 @@
 
     renderCurrentView();
     renderPagination();
+    updateSortHeaderUI();
     persistListState();
   }
 
@@ -145,6 +146,7 @@
   function applyColumnVisibility() {
     $('#links-rows-view').classList.toggle('hide-clicks', !state.columns.clicks);
     $('#links-rows-view').classList.toggle('hide-created', !state.columns.created);
+    $('#links-rows-view').classList.toggle('hide-tags', !state.columns.tags);
   }
 
   function faviconUrl(url) {
@@ -155,17 +157,22 @@
     }
   }
 
-  function buildBadges(row) {
+  // Link metadata badges (password/expiry/limit/UTM) shown inline under the link itself, in
+  // both Rows and Cards view. Tags are separate -- see tagBadges() -- since Rows view puts them
+  // in their own column instead of inline.
+  function metaBadges(row) {
     const badges = [];
     if (row.has_password) badges.push('<span class="badge badge-blue">🔒 Password</span>');
     if (row.is_expired) badges.push('<span class="badge badge-red">Expired</span>');
     else if (row.expires_at) badges.push('<span class="badge badge-amber">Expires ' + formatDate(row.expires_at) + '</span>');
     if (row.max_clicks) badges.push('<span class="badge badge-gray">Limit ' + row.max_clicks + '</span>');
     if (row.utm && (row.utm.source || row.utm.campaign)) badges.push('<span class="badge badge-gray">UTM</span>');
-    if (state.columns.tags) {
-      (row.tags || []).forEach((t) => badges.push(`<span class="badge badge-${escAttr(t.color)}">${escHtml(t.name)}</span>`));
-    }
     return badges;
+  }
+
+  function tagBadges(row) {
+    if (!state.columns.tags) return [];
+    return (row.tags || []).map((t) => `<span class="badge badge-${escAttr(t.color)}">${escHtml(t.name)}</span>`);
   }
 
   function faviconHtml(row) {
@@ -208,7 +215,8 @@
   }
 
   function renderRow(row) {
-    const badges = buildBadges(row);
+    const badges = metaBadges(row);
+    const tags = tagBadges(row);
     const checked = state.selected.has(row.keyword) ? ' checked' : '';
 
     return `
@@ -218,6 +226,7 @@
           ${faviconHtml(row)}
           ${linkCellTextHtml(row, badges)}
         </td>
+        <td class="col-tags">${tags.length ? '<div class="badge-row">' + tags.join('') + '</div>' : ''}</td>
         <td class="clicks-cell col-clicks">${row.clicks}</td>
         <td class="col-created" style="color:var(--text-dim);font-size:0.82rem;">${formatDate(row.timestamp)}</td>
         <td>${rowActionsHtml()}</td>
@@ -225,7 +234,7 @@
   }
 
   function renderCard(row) {
-    const badges = buildBadges(row);
+    const badges = [...metaBadges(row), ...tagBadges(row)];
     const checked = state.selected.has(row.keyword) ? ' checked' : '';
     const footerParts = [];
     if (state.columns.clicks) footerParts.push(`${row.clicks} click${row.clicks === 1 ? '' : 's'}`);
@@ -338,6 +347,34 @@
       e.stopPropagation();
       if (UI.popoverKind() === 'links-display') { UI.closePopover(); return; }
       renderLinksDisplayPopover();
+    });
+  }
+
+  // Clicking a sortable column header sorts by that field, defaulting to descending; clicking
+  // the already-active field flips its direction instead. Kept in sync with the Display
+  // popover's Ordering dropdown, which sets the same state.sort/state.order.
+  function bindSortHeaders() {
+    $$('.th-sort').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const field = btn.dataset.sortField;
+        if (state.sort === field) {
+          state.order = state.order === 'ASC' ? 'DESC' : 'ASC';
+        } else {
+          state.sort = field;
+          state.order = 'DESC';
+        }
+        state.page = 1;
+        loadLinks();
+      });
+    });
+  }
+
+  function updateSortHeaderUI() {
+    $$('.th-sort').forEach((btn) => {
+      const active = btn.dataset.sortField === state.sort;
+      btn.classList.toggle('active', active);
+      btn.classList.toggle('asc', active && state.order === 'ASC');
+      btn.classList.toggle('desc', active && state.order === 'DESC');
     });
   }
 
@@ -454,6 +491,7 @@
     $('#s-check-update-btn').addEventListener('click', () => refreshUpdateStatus(true));
 
     bindListToolbar();
+    bindSortHeaders();
     updateLinksFilterButtonLabel();
 
     $('#select-all-checkbox').addEventListener('change', (e) => {

@@ -30,6 +30,24 @@ const Analytics = (function () {
   const OS_OPTIONS = ['iOS', 'macOS', 'Windows', 'ChromeOS', 'Android', 'Linux', 'Other'];
   const CONTINENT_OPTIONS = ['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'];
 
+  // Palette reused from the tag badge system (app/css/app.css) so a browser/OS's little icon
+  // uses the same 7-color design language as everything else -- indexed to BROWSER_OPTIONS /
+  // OS_OPTIONS above rather than hashed, so each name always gets the same color.
+  const ICON_PALETTE = ['red', 'yellow', 'green', 'blue', 'purple', 'brown', 'gray'];
+  const ICON_COLOR_VARS = {
+    red: ['var(--red)', 'var(--red-bg)'], yellow: ['var(--yellow)', 'var(--yellow-bg)'],
+    green: ['var(--green)', 'var(--green-bg)'], blue: ['var(--blue)', 'var(--blue-bg)'],
+    purple: ['var(--purple)', 'var(--purple-bg)'], brown: ['var(--brown)', 'var(--brown-bg)'],
+    gray: ['var(--text-dim)', 'var(--border)'],
+  };
+  const BROWSER_INITIALS = { Chrome: 'C', Safari: 'S', Firefox: 'F', Edge: 'E', 'Samsung Internet': 'SI', Opera: 'O', Other: '?' };
+  const OS_INITIALS = { iOS: 'i', macOS: 'M', Windows: 'W', ChromeOS: 'Cr', Android: 'A', Linux: 'L', Other: '?' };
+  const DEVICE_ICON_PATHS = {
+    Desktop: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
+    Mobile: '<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/>',
+    Tablet: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M11 18h2"/>',
+  };
+
   let state = {
     range: '7d',
     start: '',
@@ -311,6 +329,51 @@ const Analytics = (function () {
     return String.fromCodePoint(...[...code.toUpperCase()].map((c) => 127397 + c.charCodeAt(0)));
   }
 
+  function faviconUrl(url) {
+    try {
+      return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(new URL(url).hostname)}&sz=32`;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function faviconIconHtml(url) {
+    const src = url ? faviconUrl(url) : '';
+    return src ? `<img class="row-icon-favicon" src="${escAttr(src)}" alt="" onerror="this.style.visibility='hidden'">` : '';
+  }
+
+  function deviceIconSvg(name) {
+    const path = DEVICE_ICON_PATHS[name];
+    if (!path) return '';
+    return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="row-icon-device">${path}</svg>`;
+  }
+
+  function colorForName(list, name) {
+    const idx = list.indexOf(name);
+    return ICON_PALETTE[idx >= 0 ? idx % ICON_PALETTE.length : ICON_PALETTE.length - 1];
+  }
+
+  function monogramSvg(initials, colorName) {
+    const [fg, bg] = ICON_COLOR_VARS[colorName] || ICON_COLOR_VARS.gray;
+    return `<svg width="16" height="16" viewBox="0 0 16 16" class="row-icon-mono">
+      <circle cx="8" cy="8" r="8" fill="${bg}"/>
+      <text x="8" y="11" text-anchor="middle" font-size="7" font-weight="700" fill="${fg}">${escHtml(initials)}</text>
+    </svg>`;
+  }
+
+  function iconForRow(kind, row) {
+    switch (kind) {
+      case 'short_links': return faviconIconHtml(row.dest);
+      case 'destination_urls': return faviconIconHtml(row.url);
+      case 'referrers': return row.referrer ? faviconIconHtml(row.referrer) : '';
+      case 'countries': return row.code ? `<span class="row-icon-flag">${flagEmoji(row.code)}</span>` : '';
+      case 'devices': return deviceIconSvg(row.name);
+      case 'browsers': return monogramSvg(BROWSER_INITIALS[row.name] || '?', colorForName(BROWSER_OPTIONS, row.name));
+      case 'os': return monogramSvg(OS_INITIALS[row.name] || '?', colorForName(OS_OPTIONS, row.name));
+      default: return ''; // continents, utm -- no natural icon
+    }
+  }
+
   function labelForRow(kind, row) {
     switch (kind) {
       case 'short_links':
@@ -322,7 +385,7 @@ const Analytics = (function () {
       case 'utm':
         return escHtml(row.value);
       case 'countries':
-        return `${flagEmoji(row.code)} ${escHtml(row.code)}`;
+        return escHtml(row.name || row.code);
       default: // continents, devices, browsers, os
         return escHtml(row.name);
     }
@@ -340,12 +403,16 @@ const Analytics = (function () {
       return;
     }
     const max = Math.max(1, ...rows.map((r) => r.c));
-    el.innerHTML = rows.map((r) => `
+    el.innerHTML = rows.map((r) => {
+      const icon = iconForRow(kind, r);
+      return `
       <div class="breakdown-row">
         <div class="breakdown-row-bar" style="width:${Math.max(4, (r.c / max) * 100)}%"></div>
+        ${icon ? `<span class="breakdown-row-icon">${icon}</span>` : ''}
         <span class="breakdown-row-label">${labelForRow(kind, r)}</span>
         <span class="breakdown-row-count">${r.c.toLocaleString()}</span>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 
   function renderCardBody(mountId, tab) {

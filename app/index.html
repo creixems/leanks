@@ -73,13 +73,22 @@
         <tr>
           <th class="checkbox-cell"><input type="checkbox" id="select-all-checkbox"></th>
           <th>Link</th>
-          <th class="col-clicks">Clicks</th>
-          <th class="col-created">Created</th>
+          <th class="col-tags">Tags</th>
+          <th class="col-clicks">
+            <button type="button" class="th-sort" data-sort-field="clicks">Clicks
+              <svg class="th-sort-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+          </th>
+          <th class="col-created">
+            <button type="button" class="th-sort" data-sort-field="timestamp">Created
+              <svg class="th-sort-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+          </th>
           <th></th>
         </tr>
       </thead>
       <tbody id="links-tbody">
-        <tr><td colspan="5" style="padding:24px;"><div class="skeleton" style="height:40px;"></div></td></tr>
+        <tr><td colspan="6" style="padding:24px;"><div class="skeleton" style="height:40px;"></div></td></tr>
       </tbody>
     </table>
     <div id="empty-state" class="empty-state hidden">
