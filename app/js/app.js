@@ -30,8 +30,11 @@
     loadPersistedListState()
   );
   state.selected = new Set(); // never persisted -- selection is page-scoped and ephemeral
-  let editingRow = null; // null = create mode, otherwise the row object being edited
-  let selectedTagIds = []; // tags picked in the create/edit link form
+  let editingRow = null; // the row currently open in the edit modal (never null while it's open)
+  let selectedTagIds = []; // tags picked in the edit modal
+  let createSelectedTagIds = []; // tags picked in the always-visible inline create section --
+  // kept separate from selectedTagIds so opening the edit modal mid-draft can't clobber an
+  // in-progress create (the two forms can coexist since create is never itself a modal)
   let tagsCache = null;
 
   const $ = (sel) => document.querySelector(sel);
@@ -50,6 +53,7 @@
     const boot = await Api.bootstrap();
     $('#current-user').textContent = boot.user;
     $('#f-keyword-domain').textContent = '(' + boot.site_url.replace(/^https?:\/\//, '') + '/)';
+    $('#c-keyword').placeholder = boot.site_url.replace(/^https?:\/\//, '') + '/ (auto)';
     bindEvents();
     loadLinks();
     checkForUpdate();
@@ -74,9 +78,9 @@
     $$('.nav-tab').forEach((t) => t.classList.toggle('active', t.dataset.view === view));
     $('#view-links').classList.toggle('hidden', view !== 'links');
     $('#view-analytics').classList.toggle('hidden', view !== 'analytics');
-    // Tags/Import/Create are Links-view-only actions; the toolbar (incl. search) lives inside
-    // #view-links itself now, so it's already hidden/shown along with the rest of that view.
-    [$('#tags-btn'), $('#import-btn'), $('#create-btn')].forEach((el) => {
+    // Tags/Import are Links-view-only actions; the toolbar (incl. search) and the inline create
+    // section live inside #view-links itself, so they're already hidden/shown with that view.
+    [$('#tags-btn'), $('#import-btn')].forEach((el) => {
       el.classList.toggle('hidden', view !== 'links');
     });
     if (view === 'analytics') Analytics.show();
@@ -188,7 +192,7 @@
         <div class="short">
           <a href="${escAttr(row.shorturl)}" target="_blank" rel="noopener">${escHtml(row.shorturl.replace(/^https?:\/\//, ''))}</a>
           <button class="copy-btn" data-copy="${escAttr(row.shorturl)}" title="Copy">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667l0 -8.666" /><path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" /></svg>
           </button>
         </div>
         <div class="dest" title="${escAttr(row.url)}">${escHtml(row.url)}</div>
@@ -200,16 +204,16 @@
     return `
       <div class="row-actions">
         <button class="btn btn-ghost btn-icon" data-action="qr" title="QR code">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM17 17h4v4h-4zM14 21h3M21 14v3"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4" /><path d="M7 17l0 .01" /><path d="M14 5a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4" /><path d="M7 7l0 .01" /><path d="M4 15a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1l0 -4" /><path d="M17 7l0 .01" /><path d="M14 14l3 0" /><path d="M20 14l0 .01" /><path d="M14 14l0 3" /><path d="M14 20l3 0" /><path d="M17 17l3 0" /><path d="M20 17l0 3" /></svg>
         </button>
         <button class="btn btn-ghost btn-icon" data-action="stats" title="Stats">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-6 4 3 5-8"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19l16 0" /><path d="M4 15l4 -6l4 2l4 -5l4 4" /></svg>
         </button>
         <button class="btn btn-ghost btn-icon" data-action="edit" title="Edit">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /><path d="M13.5 6.5l4 4" /></svg>
         </button>
         <button class="btn btn-ghost btn-icon" data-action="delete" title="Delete">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l16 0" /><path d="M10 11l0 6" /><path d="M14 11l0 6" /><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12" /><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3" /></svg>
         </button>
       </div>`;
   }
@@ -463,9 +467,9 @@
     });
   }
 
-  // ---------- create / edit modal ----------
+  // ---------- edit modal ----------
   function bindEvents() {
-    $('#create-btn').addEventListener('click', openCreate);
+    bindCreateSection();
     $('#logout-btn').addEventListener('click', async () => { await Api.logout(); window.location.replace('login.html'); });
 
     $$('.nav-tab').forEach((tab) => tab.addEventListener('click', () => switchView(tab.dataset.view)));
@@ -535,21 +539,9 @@
     renderSelectedTagChips();
   }
 
-  function openCreate() {
-    editingRow = null;
-    resetForm();
-    $('#link-modal-title').textContent = 'Create link';
-    $('#link-form-submit').textContent = 'Create link';
-    $('#f-keyword').disabled = false;
-    openModal('link-modal-backdrop');
-    $('#f-url').focus();
-  }
-
   function openEdit(row) {
     editingRow = row;
     resetForm();
-    $('#link-modal-title').textContent = 'Edit link';
-    $('#link-form-submit').textContent = 'Save changes';
 
     $('#f-url').value = stripUtmParams(row.url);
     $('#f-keyword').value = row.keyword;
@@ -702,36 +694,21 @@
       const expires = $('#f-expires').value; // yyyy-MM-ddTHH:mm
       const maxClicks = $('#f-max-clicks').value;
 
-      if (!editingRow) {
-        const res = await Api.createLink({
-          url: finalUrl,
-          keyword,
-          title,
-          password: passwordEnabled ? passwordValue : '',
-          expires_at: expires ? expires.replace('T', ' ') : '',
-          max_clicks: maxClicks || '',
-          tag_ids: selectedTagIds.join(','),
-          ...utm,
-        });
-        if (res.status !== 'success') throw new Error(res.message || 'Could not create link');
-        toast('Link created');
-      } else {
-        const newKeyword = keyword || editingRow.keyword;
-        // Stock YOURLS' edit_save reports "fail" when its UPDATE affects 0 rows -- which MySQL
-        // does whenever url/keyword/title are all unchanged (e.g. this edit only touches tags,
-        // UTM, expiration or password). Skip the call entirely in that case rather than treating
-        // a no-op as an error.
-        if (finalUrl !== editingRow.url || newKeyword !== editingRow.keyword || title !== (editingRow.title || '')) {
-          const editRes = await Api.editLink(editingRow, { url: finalUrl, keyword: newKeyword, title });
-          if (editRes.status && editRes.status !== 'success') throw new Error(editRes.message || 'Could not save link');
-        }
-
-        const metaFields = { keyword: newKeyword, expires_at: expires ? expires.replace('T', ' ') : '', max_clicks: maxClicks || '', tag_ids: selectedTagIds.join(','), ...utm };
-        if (passwordEnabled && passwordValue) metaFields.password = passwordValue;
-        else if (!passwordEnabled) metaFields.remove_password = '1';
-        await Api.saveMeta(metaFields);
-        toast('Link updated');
+      const newKeyword = keyword || editingRow.keyword;
+      // Stock YOURLS' edit_save reports "fail" when its UPDATE affects 0 rows -- which MySQL
+      // does whenever url/keyword/title are all unchanged (e.g. this edit only touches tags,
+      // UTM, expiration or password). Skip the call entirely in that case rather than treating
+      // a no-op as an error.
+      if (finalUrl !== editingRow.url || newKeyword !== editingRow.keyword || title !== (editingRow.title || '')) {
+        const editRes = await Api.editLink(editingRow, { url: finalUrl, keyword: newKeyword, title });
+        if (editRes.status && editRes.status !== 'success') throw new Error(editRes.message || 'Could not save link');
       }
+
+      const metaFields = { keyword: newKeyword, expires_at: expires ? expires.replace('T', ' ') : '', max_clicks: maxClicks || '', tag_ids: selectedTagIds.join(','), ...utm };
+      if (passwordEnabled && passwordValue) metaFields.password = passwordValue;
+      else if (!passwordEnabled) metaFields.remove_password = '1';
+      await Api.saveMeta(metaFields);
+      toast('Link updated');
 
       closeModal('link-modal-backdrop');
       loadLinks();
@@ -740,6 +717,155 @@
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = originalLabel;
+    }
+  }
+
+  // ---------- inline create-link section ----------
+  // A standalone counterpart to the edit modal above (same fields, c- prefixed IDs) rather than
+  // a shared/parameterized implementation -- the two forms are never open "for the same reason"
+  // at the same time (create is always visible, edit is a modal), so keeping them independent
+  // avoids the edit modal's resetForm()/editingRow bookkeeping leaking into the always-on form.
+  function resetCreateForm() {
+    $('#c-form').reset();
+    $('#c-password-wrap').classList.add('hidden');
+    $('#c-advanced-section').removeAttribute('open');
+    $('#c-utm-preview').style.display = 'none';
+    createSelectedTagIds = [];
+    renderCreateSelectedTagChips();
+  }
+
+  function renderCreateSelectedTagChips() {
+    const tags = tagsCache || [];
+    $('#c-selected-tags').innerHTML = createSelectedTagIds.map((id) => {
+      const t = tags.find((x) => x.id === id);
+      if (!t) return '';
+      return `<span class="badge badge-${escAttr(t.color)} tag-chip-removable" data-remove-tag="${t.id}">${escHtml(t.name)} &times;</span>`;
+    }).join('');
+    $$('#c-selected-tags [data-remove-tag]').forEach((el) => {
+      el.addEventListener('click', () => {
+        const id = parseInt(el.dataset.removeTag, 10);
+        createSelectedTagIds = createSelectedTagIds.filter((x) => x !== id);
+        renderCreateSelectedTagChips();
+      });
+    });
+  }
+
+  async function openCreateTagPicker() {
+    if (UI.popoverKind() === 'create-tag-picker') { UI.closePopover(); return; }
+    UI.reserveKind('create-tag-picker');
+    const tags = await ensureTagsLoaded(true);
+    if (UI.popoverKind() !== 'create-tag-picker') return;
+    renderCreateTagPickerPopover(tags);
+    renderCreateSelectedTagChips();
+  }
+
+  function renderCreateTagPickerPopover(tags) {
+    const rows = tags.length ? tags.map((t) => `
+      <label class="tag-picker-row">
+        <input type="checkbox" value="${t.id}"${createSelectedTagIds.includes(t.id) ? ' checked' : ''}>
+        <span class="badge badge-${escAttr(t.color)}">${escHtml(t.name)}</span>
+      </label>`).join('') : '<div class="mini-row"><span>No tags yet</span></div>';
+
+    const html = `
+      <div class="filter-form">
+        ${rows}
+        <div class="tag-picker-new">
+          <input type="text" id="ctp-new-name" placeholder="New tag name">
+          <button type="button" class="btn btn-secondary btn-sm" id="ctp-new-add">Add</button>
+        </div>
+      </div>`;
+    UI.openPopover($('#c-tags-btn'), html, 'create-tag-picker');
+
+    $$('.tag-picker-row input[type=checkbox]').forEach((box) => {
+      box.addEventListener('change', (e) => {
+        const id = parseInt(e.target.value, 10);
+        if (e.target.checked) createSelectedTagIds.push(id);
+        else createSelectedTagIds = createSelectedTagIds.filter((x) => x !== id);
+        renderCreateSelectedTagChips();
+      });
+    });
+
+    $('#ctp-new-add').addEventListener('click', async () => {
+      const name = $('#ctp-new-name').value.trim();
+      if (!name) return;
+      const res = await Api.createTag(name, 'gray');
+      if (!res.success) { toast(res.message || 'Could not create tag', true); return; }
+      createSelectedTagIds.push(res.id);
+      const tags2 = await ensureTagsLoaded(true);
+      renderCreateTagPickerPopover(tags2);
+      renderCreateSelectedTagChips();
+    });
+  }
+
+  function updateCreateUtmPreview() {
+    const base = $('#c-url').value.trim();
+    const utm = {
+      utm_source: $('#c-utm-source').value.trim(),
+      utm_medium: $('#c-utm-medium').value.trim(),
+      utm_campaign: $('#c-utm-campaign').value.trim(),
+      utm_term: $('#c-utm-term').value.trim(),
+      utm_content: $('#c-utm-content').value.trim(),
+    };
+    const hasAny = Object.values(utm).some(Boolean);
+    const preview = $('#c-utm-preview');
+    if (!base || !hasAny) { preview.style.display = 'none'; return; }
+    preview.style.display = 'block';
+    preview.textContent = appendUtmParams(base, utm);
+  }
+
+  function bindCreateSection() {
+    $('#c-password-toggle').addEventListener('change', (e) => {
+      $('#c-password-wrap').classList.toggle('hidden', !e.target.checked);
+    });
+    ['c-url', 'c-utm-source', 'c-utm-medium', 'c-utm-campaign', 'c-utm-term', 'c-utm-content'].forEach((id) => {
+      $('#' + id).addEventListener('input', updateCreateUtmPreview);
+    });
+    $('#c-tags-btn').addEventListener('click', (e) => { e.stopPropagation(); openCreateTagPicker(); });
+    $('#c-form').addEventListener('submit', onSubmitCreateForm);
+  }
+
+  async function onSubmitCreateForm(e) {
+    e.preventDefault();
+    const submitBtn = $('#c-submit');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      const utm = {
+        utm_source: $('#c-utm-source').value.trim(),
+        utm_medium: $('#c-utm-medium').value.trim(),
+        utm_campaign: $('#c-utm-campaign').value.trim(),
+        utm_term: $('#c-utm-term').value.trim(),
+        utm_content: $('#c-utm-content').value.trim(),
+      };
+      const finalUrl = appendUtmParams($('#c-url').value.trim(), utm);
+      const title = $('#c-title').value.trim();
+      const keyword = $('#c-keyword').value.trim();
+      const passwordEnabled = $('#c-password-toggle').checked;
+      const passwordValue = $('#c-password').value;
+      const expires = $('#c-expires').value;
+      const maxClicks = $('#c-max-clicks').value;
+
+      const res = await Api.createLink({
+        url: finalUrl,
+        keyword,
+        title,
+        password: passwordEnabled ? passwordValue : '',
+        expires_at: expires ? expires.replace('T', ' ') : '',
+        max_clicks: maxClicks || '',
+        tag_ids: createSelectedTagIds.join(','),
+        ...utm,
+      });
+      if (res.status !== 'success') throw new Error(res.message || 'Could not create link');
+
+      toast('Link created');
+      resetCreateForm();
+      loadLinks();
+    } catch (err) {
+      toast(err.message || 'Something went wrong', true);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '+ Create link';
     }
   }
 

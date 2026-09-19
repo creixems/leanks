@@ -154,5 +154,5 @@ Then visit `http://127.0.0.1:8000/setup/` to install against your local database
 
 ## License
 
-MIT -- see [LICENSE](LICENSE). Bundles YOURLS and qrcode.js, both MIT licensed; see
-[licenses/](licenses/) for their original license texts.
+MIT -- see [LICENSE](LICENSE). Bundles YOURLS, qrcode.js and icons from Tabler Icons, all MIT
+licensed; see [licenses/](licenses/) for their original license texts.

@@ -30,22 +30,33 @@ const Analytics = (function () {
   const OS_OPTIONS = ['iOS', 'macOS', 'Windows', 'ChromeOS', 'Android', 'Linux', 'Other'];
   const CONTINENT_OPTIONS = ['Africa', 'Antarctica', 'Asia', 'Europe', 'North America', 'Oceania', 'South America'];
 
-  // Palette reused from the tag badge system (app/css/app.css) so a browser/OS's little icon
-  // uses the same 7-color design language as everything else -- indexed to BROWSER_OPTIONS /
-  // OS_OPTIONS above rather than hashed, so each name always gets the same color.
-  const ICON_PALETTE = ['red', 'yellow', 'green', 'blue', 'purple', 'brown', 'gray'];
-  const ICON_COLOR_VARS = {
-    red: ['var(--red)', 'var(--red-bg)'], yellow: ['var(--yellow)', 'var(--yellow-bg)'],
-    green: ['var(--green)', 'var(--green-bg)'], blue: ['var(--blue)', 'var(--blue-bg)'],
-    purple: ['var(--purple)', 'var(--purple-bg)'], brown: ['var(--brown)', 'var(--brown-bg)'],
-    gray: ['var(--text-dim)', 'var(--border)'],
-  };
-  const BROWSER_INITIALS = { Chrome: 'C', Safari: 'S', Firefox: 'F', Edge: 'E', 'Samsung Internet': 'SI', Opera: 'O', Other: '?' };
-  const OS_INITIALS = { iOS: 'i', macOS: 'M', Windows: 'W', ChromeOS: 'Cr', Android: 'A', Linux: 'L', Other: '?' };
+  // Icon paths sourced from Tabler Icons (MIT) -- see licenses/TABLER-ICONS.LICENSE. Samsung
+  // Internet and Other (browsers), and Linux and Other (OS), have no real brand mark in Tabler's
+  // free set, so they fall back to a generic globe/terminal/help-circle icon; ChromeOS reuses
+  // the Chrome logo itself, since Chrome OS is Google's Chrome-centric platform and there's no
+  // separate ChromeOS mark available either.
   const DEVICE_ICON_PATHS = {
-    Desktop: '<rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/>',
-    Mobile: '<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/>',
-    Tablet: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M11 18h2"/>',
+    Desktop: '<path d="M3 5a1 1 0 0 1 1 -1h16a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1h-16a1 1 0 0 1 -1 -1v-10" /><path d="M7 20h10" /><path d="M9 16v4" /><path d="M15 16v4" />',
+    Mobile: '<path d="M6 5a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2v-14" /><path d="M11 4h2" /><path d="M12 17v.01" />',
+    Tablet: '<path d="M5 4a1 1 0 0 1 1 -1h12a1 1 0 0 1 1 1v16a1 1 0 0 1 -1 1h-12a1 1 0 0 1 -1 -1v-16" /><path d="M11 17a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" />',
+  };
+  const BROWSER_ICON_PATHS = {
+    Chrome: '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M12 9h8.4" /><path d="M14.598 13.5l-4.2 7.275" /><path d="M9.402 13.5l-4.2 -7.275" />',
+    Safari: '<path d="M8 16l2 -6l6 -2l-2 6l-6 2" /><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />',
+    Firefox: '<path d="M4.028 7.82a9 9 0 1 0 12.823 -3.4c-1.636 -1.02 -3.064 -1.02 -4.851 -1.02h-1.647" /><path d="M4.914 9.485c-1.756 -1.569 -.805 -5.38 .109 -6.17c.086 .896 .585 1.208 1.111 1.685c.88 -.275 1.313 -.282 1.867 0c.82 -.91 1.694 -2.354 2.628 -2.093c-1.082 1.741 -.07 3.733 1.371 4.173c-.17 .975 -1.484 1.913 -2.76 2.686c-1.296 .938 -.722 1.85 0 2.234c.949 .506 3.611 -1 4.545 .354c-1.698 .102 -1.536 3.107 -3.983 2.727c2.523 .957 4.345 .462 5.458 -.34c1.965 -1.52 2.879 -3.542 2.879 -5.557c-.014 -1.398 .194 -2.695 -1.26 -4.75" />',
+    Edge: '<path d="M20.978 11.372a9 9 0 1 0 -1.593 5.773" /><path d="M20.978 11.372c.21 2.993 -5.034 2.413 -6.913 1.486c1.392 -1.6 .402 -4.038 -2.274 -3.851c-1.745 .122 -2.927 1.157 -2.784 3.202c.28 3.99 4.444 6.205 10.36 4.79" /><path d="M3.022 12.628c-.283 -4.043 8.717 -7.228 11.248 -2.688" /><path d="M12.628 20.978c-2.993 .21 -5.162 -4.725 -3.567 -9.748" />',
+    'Samsung Internet': '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M3.6 9h16.8" /><path d="M3.6 15h16.8" /><path d="M11.5 3a17 17 0 0 0 0 18" /><path d="M12.5 3a17 17 0 0 1 0 18" />',
+    Opera: '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M9 12a3 5 0 1 0 6 0a3 5 0 1 0 -6 0" />',
+    Other: '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 16v.01" /><path d="M12 13a2 2 0 0 0 .914 -3.782a1.98 1.98 0 0 0 -2.414 .483" />',
+  };
+  const OS_ICON_PATHS = {
+    iOS: '<path d="M8.286 7.008c-3.216 0 -4.286 3.23 -4.286 5.92c0 3.229 2.143 8.072 4.286 8.072c1.165 -.05 1.799 -.538 3.214 -.538c1.406 0 1.607 .538 3.214 .538s4.286 -3.229 4.286 -5.381c-.03 -.011 -2.649 -.434 -2.679 -3.23c-.02 -2.335 2.589 -3.179 2.679 -3.228c-1.096 -1.606 -3.162 -2.113 -3.75 -2.153c-1.535 -.12 -3.032 1.077 -3.75 1.077c-.729 0 -2.036 -1.077 -3.214 -1.077" /><path d="M12 4a2 2 0 0 0 2 -2a2 2 0 0 0 -2 2" />',
+    macOS: '<path d="M8.286 7.008c-3.216 0 -4.286 3.23 -4.286 5.92c0 3.229 2.143 8.072 4.286 8.072c1.165 -.05 1.799 -.538 3.214 -.538c1.406 0 1.607 .538 3.214 .538s4.286 -3.229 4.286 -5.381c-.03 -.011 -2.649 -.434 -2.679 -3.23c-.02 -2.335 2.589 -3.179 2.679 -3.228c-1.096 -1.606 -3.162 -2.113 -3.75 -2.153c-1.535 -.12 -3.032 1.077 -3.75 1.077c-.729 0 -2.036 -1.077 -3.214 -1.077" /><path d="M12 4a2 2 0 0 0 2 -2a2 2 0 0 0 -2 2" />',
+    Windows: '<path d="M17.8 20l-12 -1.5c-1 -.1 -1.8 -.9 -1.8 -1.9v-9.2c0 -1 .8 -1.8 1.8 -1.9l12 -1.5c1.2 -.1 2.2 .8 2.2 1.9v12.1c0 1.2 -1.1 2.1 -2.2 1.9l0 .1" /><path d="M12 5l0 14" /><path d="M4 12l16 0" />',
+    ChromeOS: '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M12 9h8.4" /><path d="M14.598 13.5l-4.2 7.275" /><path d="M9.402 13.5l-4.2 -7.275" />',
+    Android: '<path d="M4 10l0 6" /><path d="M20 10l0 6" /><path d="M7 9h10v8a1 1 0 0 1 -1 1h-8a1 1 0 0 1 -1 -1v-8a5 5 0 0 1 10 0" /><path d="M8 3l1 2" /><path d="M16 3l-1 2" /><path d="M9 18l0 3" /><path d="M15 18l0 3" />',
+    Linux: '<path d="M8 9l3 3l-3 3" /><path d="M13 15l3 0" /><path d="M3 6a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2l0 -12" />',
+    Other: '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 16v.01" /><path d="M12 13a2 2 0 0 0 .914 -3.782a1.98 1.98 0 0 0 -2.414 .483" />',
   };
 
   let state = {
@@ -342,23 +353,9 @@ const Analytics = (function () {
     return src ? `<img class="row-icon-favicon" src="${escAttr(src)}" alt="" onerror="this.style.visibility='hidden'">` : '';
   }
 
-  function deviceIconSvg(name) {
-    const path = DEVICE_ICON_PATHS[name];
-    if (!path) return '';
-    return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="row-icon-device">${path}</svg>`;
-  }
-
-  function colorForName(list, name) {
-    const idx = list.indexOf(name);
-    return ICON_PALETTE[idx >= 0 ? idx % ICON_PALETTE.length : ICON_PALETTE.length - 1];
-  }
-
-  function monogramSvg(initials, colorName) {
-    const [fg, bg] = ICON_COLOR_VARS[colorName] || ICON_COLOR_VARS.gray;
-    return `<svg width="16" height="16" viewBox="0 0 16 16" class="row-icon-mono">
-      <circle cx="8" cy="8" r="8" fill="${bg}"/>
-      <text x="8" y="11" text-anchor="middle" font-size="7" font-weight="700" fill="${fg}">${escHtml(initials)}</text>
-    </svg>`;
+  function pathIconSvg(paths) {
+    if (!paths) return '';
+    return `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="row-icon-glyph">${paths}</svg>`;
   }
 
   function iconForRow(kind, row) {
@@ -367,9 +364,9 @@ const Analytics = (function () {
       case 'destination_urls': return faviconIconHtml(row.url);
       case 'referrers': return row.referrer ? faviconIconHtml(row.referrer) : '';
       case 'countries': return row.code ? `<span class="row-icon-flag">${flagEmoji(row.code)}</span>` : '';
-      case 'devices': return deviceIconSvg(row.name);
-      case 'browsers': return monogramSvg(BROWSER_INITIALS[row.name] || '?', colorForName(BROWSER_OPTIONS, row.name));
-      case 'os': return monogramSvg(OS_INITIALS[row.name] || '?', colorForName(OS_OPTIONS, row.name));
+      case 'devices': return pathIconSvg(DEVICE_ICON_PATHS[row.name]);
+      case 'browsers': return pathIconSvg(BROWSER_ICON_PATHS[row.name] || BROWSER_ICON_PATHS.Other);
+      case 'os': return pathIconSvg(OS_ICON_PATHS[row.name] || OS_ICON_PATHS.Other);
       default: return ''; // continents, utm -- no natural icon
     }
   }
@@ -396,6 +393,15 @@ const Analytics = (function () {
     return data[tab] || [];
   }
 
+  // Short links/destination URLs keep the original blue (the default, no modifier class needed);
+  // the other three breakdown-card pairs each get their own bar color to visually group the four
+  // cards at a glance.
+  const BAR_COLOR_BY_KIND = {
+    countries: 'bar-green', continents: 'bar-green',
+    devices: 'bar-yellow', browsers: 'bar-yellow', os: 'bar-yellow',
+    referrers: 'bar-purple', utm: 'bar-purple',
+  };
+
   function renderRows(mountId, rows, kind) {
     const el = $('#' + mountId);
     if (!rows || !rows.length) {
@@ -403,10 +409,11 @@ const Analytics = (function () {
       return;
     }
     const max = Math.max(1, ...rows.map((r) => r.c));
+    const barClass = BAR_COLOR_BY_KIND[kind] || '';
     el.innerHTML = rows.map((r) => {
       const icon = iconForRow(kind, r);
       return `
-      <div class="breakdown-row">
+      <div class="breakdown-row ${barClass}">
         <div class="breakdown-row-bar" style="width:${Math.max(4, (r.c / max) * 100)}%"></div>
         ${icon ? `<span class="breakdown-row-icon">${icon}</span>` : ''}
         <span class="breakdown-row-label">${labelForRow(kind, r)}</span>

@@ -25,11 +25,10 @@
   <div class="topbar-spacer"></div>
   <button class="btn btn-secondary" id="tags-btn">Tags</button>
   <button class="btn btn-secondary" id="import-btn">Import CSV</button>
-  <button class="btn btn-primary" id="create-btn">+ Create link</button>
   <div class="user-menu">
     <span id="current-user"></span>
     <button class="btn btn-ghost btn-icon" id="settings-btn" title="Settings">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065" /><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></svg>
     </button>
     <button class="btn btn-ghost btn-sm" id="logout-btn">Log out</button>
   </div>
@@ -45,12 +44,73 @@
     </div>
   </div>
 
+  <div class="card create-link-section">
+    <form id="c-form">
+      <div class="create-link-row">
+        <div class="field field-url">
+          <input type="url" id="c-url" name="url" placeholder="Destination URL" required>
+        </div>
+        <div class="field">
+          <input type="text" id="c-keyword" name="keyword" placeholder="Short link">
+        </div>
+        <div class="field">
+          <input type="text" id="c-title" name="title" placeholder="Title (optional)">
+        </div>
+        <button type="submit" class="btn btn-primary" id="c-submit">+ Create link</button>
+      </div>
+
+      <details class="advanced" id="c-advanced-section">
+        <summary>▸ Advanced options (password, expiration, UTM tags)</summary>
+
+        <div class="section-label">Password protection</div>
+        <div class="toggle-row">
+          <span style="font-size:0.85rem;">Require a password to open this link</span>
+          <label class="switch"><input type="checkbox" id="c-password-toggle"><span class="track"></span></label>
+        </div>
+        <div class="field hidden" id="c-password-wrap">
+          <input type="password" id="c-password" placeholder="Password" autocomplete="new-password">
+        </div>
+
+        <div class="section-label">Expiration</div>
+        <div class="input-row">
+          <div class="field">
+            <label for="c-expires">Expires at <span style="font-weight:400;color:var(--text-faint);">(optional)</span></label>
+            <input type="datetime-local" id="c-expires">
+          </div>
+          <div class="field">
+            <label for="c-max-clicks">Max clicks <span style="font-weight:400;color:var(--text-faint);">(optional)</span></label>
+            <input type="number" id="c-max-clicks" min="1" placeholder="e.g. 100">
+          </div>
+        </div>
+
+        <div class="section-label">Tags</div>
+        <div class="tag-picker">
+          <button type="button" class="btn btn-secondary btn-sm" id="c-tags-btn">+ Add tags</button>
+          <div class="tag-chip-row" id="c-selected-tags"></div>
+        </div>
+
+        <div class="section-label">UTM campaign tags</div>
+        <div class="input-row">
+          <div class="field"><label for="c-utm-source">Source</label><input type="text" id="c-utm-source" placeholder="newsletter"></div>
+          <div class="field"><label for="c-utm-medium">Medium</label><input type="text" id="c-utm-medium" placeholder="email"></div>
+        </div>
+        <div class="input-row">
+          <div class="field"><label for="c-utm-campaign">Campaign</label><input type="text" id="c-utm-campaign" placeholder="spring-sale"></div>
+          <div class="field"><label for="c-utm-term">Term</label><input type="text" id="c-utm-term" placeholder=""></div>
+        </div>
+        <div class="field"><label for="c-utm-content">Content</label><input type="text" id="c-utm-content" placeholder=""></div>
+
+        <div class="preview-url" id="c-utm-preview" style="display:none;"></div>
+      </details>
+    </form>
+  </div>
+
   <div class="list-toolbar">
     <button type="button" class="btn btn-secondary" id="links-filter-btn">Filter</button>
     <button type="button" class="btn btn-secondary" id="links-display-btn">Display</button>
     <div class="topbar-spacer"></div>
     <div class="topbar-search search-box">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
       <input type="search" id="search-input" placeholder="Search links...">
     </div>
   </div>
@@ -83,12 +143,12 @@
           <th class="col-tags">Tags</th>
           <th class="col-clicks">
             <button type="button" class="th-sort" data-sort-field="clicks">Clicks
-              <svg class="th-sort-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+              <svg class="th-sort-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6" /></svg>
             </button>
           </th>
           <th class="col-created">
             <button type="button" class="th-sort" data-sort-field="timestamp">Created
-              <svg class="th-sort-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+              <svg class="th-sort-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6l6 -6" /></svg>
             </button>
           </th>
           <th></th>
@@ -173,7 +233,7 @@
 <div class="modal-backdrop hidden" id="link-modal-backdrop">
   <div class="modal modal-wide">
     <div class="modal-header">
-      <h2 id="link-modal-title">Create link</h2>
+      <h2 id="link-modal-title">Edit link</h2>
       <button class="modal-close" data-close>&times;</button>
     </div>
     <form id="link-form">
@@ -238,7 +298,7 @@
 
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-close>Cancel</button>
-        <button type="submit" class="btn btn-primary" id="link-form-submit">Create link</button>
+        <button type="submit" class="btn btn-primary" id="link-form-submit">Save changes</button>
       </div>
     </form>
   </div>

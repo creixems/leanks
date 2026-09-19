@@ -497,6 +497,9 @@ details.advanced[open] > summary { color: var(--text); }
 .breakdown-row-bar {
   position: absolute; inset: 0 auto 0 0; background: var(--blue-bg); border-radius: 6px; z-index: 0;
 }
+.breakdown-row.bar-green .breakdown-row-bar { background: var(--green-bg); }
+.breakdown-row.bar-yellow .breakdown-row-bar { background: var(--yellow-bg); }
+.breakdown-row.bar-purple .breakdown-row-bar { background: var(--purple-bg); }
 .breakdown-row-label { position: relative; z-index: 1; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .breakdown-row-count { position: relative; z-index: 1; font-variant-numeric: tabular-nums; font-weight: 600; flex-shrink: 0; }
 .breakdown-row-icon {
@@ -505,6 +508,15 @@ details.advanced[open] > summary { color: var(--text); }
 }
 .breakdown-row-icon img.row-icon-favicon { width: 14px; height: 14px; border-radius: 3px; display: block; }
 .breakdown-row-icon .row-icon-flag { font-size: 0.95rem; line-height: 1; }
+
+/* Inline create-link section (top of the Links view) -- url/keyword/title/submit all sit on one
+   row on desktop; the row wraps on narrow viewports rather than overflowing. */
+
+.create-link-section { padding: 14px 16px; margin-bottom: 16px; }
+.create-link-row { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+.create-link-row .field { margin-bottom: 0; flex: 1 1 180px; min-width: 140px; }
+.create-link-row .field-url { flex: 2 1 260px; }
+.create-link-row .btn { flex: 0 0 auto; white-space: nowrap; }
 
 /* Links-list toolbar (Filter / Display / search) + bulk-select action bar */
 
