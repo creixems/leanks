@@ -184,21 +184,21 @@ yourls_add_action( 'yourls_ajax_leanks_check_update', 'leanks_ajax_check_update'
 // ---------- update execution (mutating) ----------
 
 function leanks_update_preflight_checks() {
-    $writable = true;
+    $checks = [
+        'PHP zip extension (ZipArchive)' => class_exists( 'ZipArchive' ),
+    ];
+
+    // Named per-directory rather than one collapsed "writable" check -- otherwise a failure
+    // here gives no clue which of the five it actually is, and the web server user often can't
+    // write to all of them for the same reason (e.g. one directory left owned by an FTP upload).
     foreach ( [ 'admin', 'app', 'includes', 'setup', 'user/plugins/leanks' ] as $rel ) {
-        if ( !is_writable( YOURLS_ABSPATH . '/' . $rel ) ) {
-            $writable = false;
-            break;
-        }
+        $checks[ "$rel/ is writable" ] = is_writable( YOURLS_ABSPATH . '/' . $rel );
     }
 
     $free = @disk_free_space( YOURLS_ABSPATH );
+    $checks['Enough free disk space'] = $free === false ? true : $free > 50 * 1024 * 1024;
 
-    return [
-        'PHP zip extension (ZipArchive)' => class_exists( 'ZipArchive' ),
-        'Install directories are writable' => $writable,
-        'Enough free disk space' => $free === false ? true : $free > 50 * 1024 * 1024,
-    ];
+    return $checks;
 }
 
 function leanks_update_acquire_lock() {
