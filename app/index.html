@@ -5,12 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Leanks</title>
+<link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon32.png">
+<link rel="apple-touch-icon" href="images/favicon128.png">
+<script src="js/theme-init.js"></script>
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
 
 <div class="topbar">
-  <div class="logo"><span class="logo-mark">L</span> Leanks</div>
+  <div class="logo">
+    <img class="logo-img logo-img-light" src="images/logotype-black.svg" alt="Leanks">
+    <img class="logo-img logo-img-dark" src="images/logotype-white.svg" alt="Leanks">
+  </div>
   <div class="nav-tabs" id="nav-tabs">
     <button type="button" class="nav-tab active" data-view="links">Links</button>
     <button type="button" class="nav-tab" data-view="analytics">Analytics</button>
@@ -278,6 +285,14 @@
     <div class="modal-header">
       <h2>Settings</h2>
       <button class="modal-close" data-close>&times;</button>
+    </div>
+    <div class="field">
+      <label>Theme</label>
+      <div class="view-toggle" id="s-theme-toggle">
+        <button type="button" data-theme-mode="light">Light</button>
+        <button type="button" data-theme-mode="dark">Dark</button>
+        <button type="button" data-theme-mode="system">System</button>
+      </div>
     </div>
     <div class="field">
       <label for="s-default-redirect">Default domain redirect <span style="font-weight:400;color:var(--text-faint);">(optional)</span></label>

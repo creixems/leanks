@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Log in · Leanks</title>
+<link rel="icon" type="image/svg+xml" href="images/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="images/favicon32.png">
+<link rel="apple-touch-icon" href="images/favicon128.png">
+<script src="js/theme-init.js"></script>
 <link rel="stylesheet" href="css/app.css">
 <style>
   body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
@@ -22,7 +26,10 @@
 </head>
 <body>
   <form class="login-card" id="login-form" autocomplete="on">
-    <div class="login-logo"><span class="logo-mark">L</span> Leanks</div>
+    <div class="login-logo">
+      <img class="logo-img logo-img-light" src="images/logotype-black.svg" alt="Leanks">
+      <img class="logo-img logo-img-dark" src="images/logotype-white.svg" alt="Leanks">
+    </div>
     <div class="login-error" id="login-error"></div>
     <div class="field">
       <label for="username">Username</label>

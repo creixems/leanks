@@ -31,8 +31,12 @@
   color-scheme: light;
 }
 
+/* Dark tokens apply either automatically (OS prefers dark, and the user hasn't forced light via
+   the Settings theme toggle) or explicitly (the toggle set data-theme="dark" on <html>, regardless
+   of OS preference) -- hence the same block appearing twice rather than once. The toggle itself
+   is applied by a tiny inline script in index.html's <head>, synchronously, before first paint. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0a0a0a;
     --surface: #151517;
     --border: #27272a;
@@ -51,6 +55,25 @@
     --brown-bg: #2a1c0f;
     color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --surface: #151517;
+  --border: #27272a;
+  --border-strong: #3f3f46;
+  --text: #fafafa;
+  --text-dim: #a1a1aa;
+  --text-faint: #71717a;
+  --accent: #fafafa;
+  --accent-text: #0a0a0a;
+  --blue-bg: #0f1b33;
+  --green-bg: #0c2116;
+  --red-bg: #2a1010;
+  --amber-bg: #2a1c05;
+  --purple-bg: #1e1533;
+  --yellow-bg: #2a2405;
+  --brown-bg: #2a1c0f;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -86,21 +109,15 @@ button, input, select { font-family: inherit; }
   border-bottom: 1px solid var(--border);
 }
 
-.logo {
-  font-weight: 700;
-  font-size: 1.05rem;
-  letter-spacing: -0.02em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
+.logo { display: flex; align-items: center; white-space: nowrap; }
+.logo-img { height: 22px; width: auto; display: block; }
+.logo-img-dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .logo-img-light { display: none; }
+  :root:not([data-theme="light"]) .logo-img-dark { display: block; }
 }
-.logo-mark {
-  width: 24px; height: 24px; border-radius: 7px;
-  background: var(--accent); color: var(--accent-text);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.8rem; font-weight: 700;
-}
+:root[data-theme="dark"] .logo-img-light { display: none; }
+:root[data-theme="dark"] .logo-img-dark { display: block; }
 
 .topbar-search { flex: 1; max-width: 420px; }
 

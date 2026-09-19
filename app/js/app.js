@@ -489,6 +489,10 @@
     $('#settings-btn').addEventListener('click', openSettingsModal);
     $('#settings-save-btn').addEventListener('click', onSaveSettings);
     $('#s-check-update-btn').addEventListener('click', () => refreshUpdateStatus(true));
+    $$('#s-theme-toggle button').forEach((btn) => btn.addEventListener('click', () => {
+      setTheme(btn.dataset.themeMode);
+      updateThemeToggleUI();
+    }));
 
     bindListToolbar();
     bindSortHeaders();
@@ -1096,10 +1100,44 @@
     if (e.target === $('#tag-edit-modal-backdrop')) cancelTagEditModal();
   });
 
+  // ---------- theme ----------
+  // "system" is stored as the absence of a saved value, not the literal string -- keeps
+  // getTheme() and the early inline script in index.html's <head> (js/theme-init.js) agreeing
+  // on what "no preference set" means.
+  const THEME_KEY = 'leanks-theme';
+
+  function getTheme() {
+    try {
+      const saved = localStorage.getItem(THEME_KEY);
+      return saved === 'light' || saved === 'dark' ? saved : 'system';
+    } catch (e) {
+      return 'system';
+    }
+  }
+
+  function applyTheme(theme) {
+    if (theme === 'light' || theme === 'dark') document.documentElement.setAttribute('data-theme', theme);
+    else document.documentElement.removeAttribute('data-theme');
+  }
+
+  function setTheme(theme) {
+    try {
+      if (theme === 'light' || theme === 'dark') localStorage.setItem(THEME_KEY, theme);
+      else localStorage.removeItem(THEME_KEY);
+    } catch (e) { /* private mode / quota -- theme just won't persist across reloads */ }
+    applyTheme(theme);
+  }
+
+  function updateThemeToggleUI() {
+    const current = getTheme();
+    $$('#s-theme-toggle button').forEach((btn) => btn.classList.toggle('active', btn.dataset.themeMode === current));
+  }
+
   // ---------- settings modal ----------
   async function openSettingsModal() {
     $('#s-default-redirect').value = '';
     openModal('settings-modal-backdrop');
+    updateThemeToggleUI();
     try {
       const res = await Api.getSettings();
       $('#s-default-redirect').value = res.default_redirect || '';
