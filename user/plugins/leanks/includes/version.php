@@ -7,7 +7,7 @@ if ( !defined( 'YOURLS_ABSPATH' ) ) die();
  * the release workflow (.github/workflows/release.yml) fails the build if this doesn't match
  * the pushed git tag, so the two can't drift apart.
  */
-define( 'LEANKS_VERSION', '1.3.0' );
+define( 'LEANKS_VERSION', '1.3.1' );
 
 /**
  * GitHub repo that ships official releases. Hardcoded on purpose -- update-checking always
