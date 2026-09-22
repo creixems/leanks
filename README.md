@@ -30,7 +30,10 @@ YOURLS is plain PHP, MIT licensed, has no build step, and stores everything in a
 tables -- which makes it a good fit for cheap shared/cPanel hosting. Leanks keeps YOURLS' core
 completely stock (redirect logic, database schema, click tracking, plugin API) and adds a small
 plugin (`user/plugins/leanks`) plus an entirely custom front end (`app/`) on top, rather than
-patching YOURLS' own files. That means YOURLS itself stays upgradeable in place.
+patching YOURLS' own files. That means YOURLS itself stays upgradeable in place. The one exception
+is `.htaccess`: it carries one extra rewrite rule so a bare visit to the site root reaches
+Leanks' default-domain-redirect setting instead of Apache/LiteSpeed's own directory listing (see
+the comment in that file) -- config for routing, not a patch to YOURLS' PHP.
 
 The dashboard's visual design is original -- a modern, SaaS-style interface built from scratch in
 plain CSS, replacing YOURLS' classic PHP admin panel look without touching YOURLS itself.

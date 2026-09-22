@@ -4,6 +4,14 @@
 <IfModule mod_rewrite.c>
 RewriteEngine On
 RewriteBase /
+# A bare request for the site root ("/") is itself an existing directory, so it fails the
+# !-d check below and skips the catch-all rule entirely -- Apache/LiteSpeed then falls through
+# to its own directory-listing/index behavior instead of ever reaching yourls-loader.php, which
+# is what silently breaks Leanks' default-domain-redirect setting (confirmed against a real
+# Apache + mod_rewrite instance, not just reasoned about). This exact-empty-path rule runs first
+# and sends only that one case to yourls-loader.php, without touching the !-f/!-d guards that
+# real subdirectories (app/, admin/, etc.) and static assets still rely on below.
+RewriteRule ^$ /yourls-loader.php [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^.*$ /yourls-loader.php [L]
