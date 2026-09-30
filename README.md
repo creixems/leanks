@@ -29,8 +29,8 @@ Leanks is YOURLS underneath (redirect engine, database, click tracking) with:
 YOURLS is plain PHP, MIT licensed, has no build step, and stores everything in a couple of MySQL
 tables -- which makes it a good fit for cheap shared/cPanel hosting. Leanks keeps YOURLS' core
 completely stock (redirect logic, database schema, click tracking, plugin API) and adds a small
-plugin (`user/plugins/leanks`) plus an entirely custom front end (`app/`) on top, rather than
-patching YOURLS' own files. That means YOURLS itself stays upgradeable in place. The one exception
+plugin (`app/user/plugins/leanks`) plus an entirely custom front end (`app/app/`) on top, rather
+than patching YOURLS' own files. That means YOURLS itself stays upgradeable in place. The one exception
 is `.htaccess`: it carries one extra rewrite rule so a bare visit to the site root reaches
 Leanks' default-domain-redirect setting instead of Apache/LiteSpeed's own directory listing (see
 the comment in that file) -- config for routing, not a patch to YOURLS' PHP.
@@ -54,8 +54,9 @@ plain CSS, replacing YOURLS' classic PHP admin panel look without touching YOURL
    Database** with ALL PRIVILEGES checked. cPanel usually prefixes both the database and user name
    with your account name (e.g. `youraccount_leanks`) -- use the exact names it shows you, not the
    short name you typed when creating them.
-2. Upload the contents of this repository to your web root (e.g. `public_html`), keeping the
-   folder structure intact.
+2. Upload the *contents* of this repository's `app/` folder to your web root (e.g. `public_html`),
+   keeping the folder structure intact -- not `web/` or `branding/`, which are repo-only and never
+   deployed to the PHP host.
 3. Visit `https://your-domain.com/setup/` in a browser and fill in the database details from step
    1 and an admin username/password. This writes `user/config.php`, creates the database tables,
    and activates the Leanks plugin automatically.
@@ -70,25 +71,29 @@ to activate the "Leanks" plugin.
 ## Project layout
 
 ```
-admin/                 Stock YOURLS admin (kept as a fallback/power-user UI)
-app/                    The Leanks dashboard (vanilla HTML/CSS/JS)
-  auth.php              Thin JSON bridge into YOURLS' own login/session
-  index.html, login.html
-  css/app.css            Design system (modern SaaS style)
-  js/app.js, api.js, login.js
-  js/vendor/qrcode.js     Vendored QR code generator (MIT, see licenses/)
-includes/               Stock YOURLS core (untouched)
-setup/                  Web-based install wizard
-user/
-  config-sample.php      Manual-install config template
-  plugins/leanks/         The plugin: password/expiration/UTM metadata + redirect gating
-licenses/               Third-party license texts (YOURLS, qrcode.js)
+app/                    The deployable PHP install -- upload its *contents* to your web root
+  admin/                 Stock YOURLS admin (kept as a fallback/power-user UI)
+  app/                    The Leanks dashboard (vanilla HTML/CSS/JS)
+    auth.php              Thin JSON bridge into YOURLS' own login/session
+    index.html, login.html
+    css/app.css            Design system (modern SaaS style)
+    js/app.js, api.js, login.js
+    js/vendor/qrcode.js     Vendored QR code generator (MIT, see licenses/)
+  includes/               Stock YOURLS core (untouched)
+  setup/                  Web-based install wizard
+  user/
+    config-sample.php      Manual-install config template
+    plugins/leanks/         The plugin: password/expiration/UTM metadata + redirect gating
+  licenses/               Third-party license texts (YOURLS, qrcode.js)
+web/                    The leanks.app marketing site (static HTML/CSS) -- repo-only, not deployed
+                         to the PHP host
+branding/               Logo and other brand assets -- repo-only
 ```
 
 ## How the plugin works
 
 Password protection, expiration and click limits are enforced by hooking YOURLS'
-`redirect_shorturl` action (see `user/plugins/leanks/includes/redirect-gate.php`): before a click
+`redirect_shorturl` action (see `app/user/plugins/leanks/includes/redirect-gate.php`): before a click
 is logged and redirected, Leanks checks a small metadata table (`{prefix}leanks_meta`, one row per
 protected/expiring link) and can intercept the request with a password prompt or an "expired"
 page. Everything else -- the redirect itself, click counting, referrer/geo logging -- is stock
@@ -100,7 +105,7 @@ actions the plugin registers on the same endpoint for listing, stats, metadata, 
 
 ### CSV import
 
-`user/plugins/leanks/includes/import.php` parses the uploaded file server-side with PHP's own CSV
+`app/user/plugins/leanks/includes/import.php` parses the uploaded file server-side with PHP's own CSV
 parser and auto-detects columns by matching common header aliases (`url`/`destination url`,
 `short link`/`key`/`slug`, `title`/`name`, `creation date`/`created at`, etc.) case-insensitively --
 it doesn't require exact header names, so column order and naming don't need to match exactly.
@@ -111,7 +116,7 @@ rather than aborting the whole import; a supplied creation date is applied after
 
 ### Updating
 
-`user/plugins/leanks/includes/update.php` polls `https://api.github.com/repos/creixems/leanks/releases/latest`
+`app/user/plugins/leanks/includes/update.php` polls `https://api.github.com/repos/creixems/leanks/releases/latest`
 (throttled to once every 24h) and shows a dashboard banner when a newer version is published.
 Clicking **Update now** downloads that release's zip, verifies it against the checksum published
 alongside it, backs up every file about to change, then applies the diff between the previous and
@@ -128,24 +133,28 @@ extension; hosts without it get a clear message instead of a broken update.
 
 Releases are built by [`.github/workflows/release.yml`](.github/workflows/release.yml): pushing a
 `vX.Y.Z` tag (after bumping `LEANKS_VERSION` in
-[`version.php`](user/plugins/leanks/includes/version.php) to match) builds a zip of every
-git-tracked file, a `manifest.json` of that file list, and a `sha256` checksum, and attaches them
+[`version.php`](app/user/plugins/leanks/includes/version.php) to match) builds a zip of every
+git-tracked file under `app/` (with the `app/` prefix stripped, so the zip mirrors a live install's
+own root), a `manifest.json` of that file list, and a `sha256` checksum, and attaches them
 to a **draft** GitHub release. Drafts are invisible to `/releases/latest`, so publishing is a
 separate, deliberate step after writing release notes.
 
 ## Local development
 
-No build step -- edit files and reload. To run it locally you need PHP and MySQL/MariaDB, e.g.:
+No build step -- edit files and reload. `app/` is the deployable install, so it's also the local
+server's document root. To run it locally you need PHP and MySQL/MariaDB, e.g.:
 
 ```bash
+cd app
 php -S 127.0.0.1:8000 router.php   # see below for router.php
 ```
 
-Since `php -S` doesn't read `.htaccess`, use a tiny router script that mirrors it for local testing:
+Since `php -S` doesn't read `.htaccess`, use a tiny router script (inside `app/`, dev-only) that
+mirrors it for local testing:
 
 ```php
 <?php
-// router.php (dev only)
+// app/router.php (dev only)
 $root = $_SERVER['DOCUMENT_ROOT'];
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $file = $root . $path;
