@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leanks — A self-hosted URL shortener built on YOURLS</title>
+<meta name="description" content="A self-hosted URL shortener with a modern SaaS-style dashboard, built on YOURLS. Password protection, expiration, UTM tags, QR codes and analytics — on your own PHP/MySQL hosting.">
+<link rel="icon" type="image/svg+xml" href="assets/logomark.svg">
+<link rel="stylesheet" href="styles.css">
+<meta property="og:title" content="Leanks">
+<meta property="og:description" content="Your own link shortener, not a SaaS bill.">
+<meta property="og:image" content="assets/dashboard.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<main>
+  <div class="wrap hero">
+    <div class="intro">
+      <div class="brand">
+        <span class="mark"><img src="assets/logomark.svg" alt="" width="52" height="52"></span>
+        <h1><img class="logotype" src="assets/logotype.svg" alt="Leanks" width="153" height="30"></h1>
+        <span class="version">v1.3.1</span>
+      </div>
+
+      <p class="tagline">Your own link shortener, <em>not a SaaS bill.</em></p>
+      <p class="sub">Self-hosted on ordinary PHP/MySQL hosting, with the dashboard a hosted shortener would charge you monthly for.</p>
+
+      <div class="cta-row">
+        <a class="btn-gh" href="https://github.com/creixems/leanks" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12a11.5 11.5 0 0 0 7.86 10.93c.58.1.79-.25.79-.56 0-.28-.01-1.02-.02-2-3.2.7-3.88-1.54-3.88-1.54-.52-1.33-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.79 0c2.2-1.49 3.17-1.18 3.17-1.18.64 1.59.24 2.76.12 3.05.74.8 1.18 1.83 1.18 3.09 0 4.41-2.69 5.39-5.25 5.67.41.36.78 1.07.78 2.16 0 1.56-.01 2.82-.01 3.2 0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"/></svg>
+          <span>View on GitHub</span>
+        </a>
+        <span class="cta-note">MIT licensed · your server, your database</span>
+      </div>
+
+      <!-- Icons: hand-drawn, stroke style consistent with the dashboard's own iconography -->
+      <ul class="features">
+        <li>
+          <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <ellipse cx="12" cy="5" rx="7" ry="3"/><path d="M5 5v6c0 1.66 3.13 3 7 3s7-1.34 7-3V5"/><path d="M5 11v6c0 1.66 3.13 3 7 3s7-1.34 7-3v-6"/>
+          </svg>
+          <span><strong>Self-hosted, no lock-in.</strong> Runs on ordinary PHP/MySQL shared hosting — your links, your database, your server.</span>
+        </li>
+        <li>
+          <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/>
+          </svg>
+          <span><strong>Built on YOURLS.</strong> Stock redirect engine, database and click tracking underneath — a modern dashboard on top.</span>
+        </li>
+        <li>
+          <svg class="feat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6l7-3Z"/><path d="M9 12l2 2 4-4"/>
+          </svg>
+          <span><strong>Everything included.</strong> Password protection, expiration, UTM tags, QR codes and analytics — no upsell tier.</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="shot">
+      <figure>
+        <img src="assets/dashboard.png" width="1280" height="800" alt="The Leanks dashboard: total links and clicks at the top, a list of short links below with click counts, creation dates, and QR / stats / edit / delete actions">
+        <figcaption>The Leanks dashboard — a link list, not a plugin admin screen.</figcaption>
+      </figure>
+    </div>
+  </div>
+
+  <!-- ---------- Features ---------- -->
+
+  <section class="block" id="features">
+    <div class="wrap">
+      <p class="eyebrow">Features</p>
+      <h2>What a hosted shortener charges for, included.</h2>
+      <p class="lede">Leanks wraps YOURLS' redirect engine with the features a paid link-management product sells as premium tiers — running on hosting you already pay for.</p>
+
+      <div class="feat-layout">
+        <div class="feat-grid">
+          <div class="feat-card">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
+            <h3>Password-protected links</h3>
+            <p>Require a password before a short link redirects anywhere.</p>
+          </div>
+          <div class="feat-card">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span>
+            <h3>Link expiration</h3>
+            <p>By date, by a maximum click count, or both at once.</p>
+          </div>
+          <div class="feat-card">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.4"/></svg></span>
+            <h3>UTM campaign builder</h3>
+            <p>A built-in UTM form with a live preview of the final URL.</p>
+          </div>
+          <div class="feat-card">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3v-3ZM19 14h2M14 19h2M19 19h2"/></svg></span>
+            <h3>QR codes</h3>
+            <p>Generated client-side for any link, downloadable as PNG.</p>
+          </div>
+          <div class="feat-card">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20M6 20v-7M12 20v-12M18 20v-4"/></svg></span>
+            <h3>Analytics dashboard</h3>
+            <p>Clicks across 9 time ranges, filtered by country, device, browser, referrer and more — with ranked breakdowns.</p>
+          </div>
+          <div class="feat-card">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
+            <h3>CSV import</h3>
+            <p>Migrate from another shortener with column auto-detection and per-row duplicate/error reporting.</p>
+          </div>
+          <div class="feat-card">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></span>
+            <h3>One-click updates</h3>
+            <p>Checksum-verified, with an automatic backup and rollback if anything goes wrong.</p>
+          </div>
+          <div class="feat-card">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></svg></span>
+            <h3>Stock YOURLS core</h3>
+            <p>The redirect engine, schema and plugin API stay untouched — YOURLS itself keeps upgrading fine.</p>
+          </div>
+        </div>
+
+        <div class="feat-shot">
+          <img src="assets/create-link-modal.png" width="1280" height="800" alt="The Leanks create-link modal, showing destination URL, short link, password protection toggle, expiration date and max clicks, and UTM campaign tag fields with a live preview">
+          <p>Every option in one form — no separate settings pages.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- How it works ---------- -->
+
+  <section class="block" id="how-it-works">
+    <div class="wrap">
+      <p class="eyebrow">How it works</p>
+      <h2>YOURLS underneath, a SaaS dashboard on top.</h2>
+
+      <div class="diagram">
+        <div class="node">
+          <p class="lbl">Untouched</p>
+          <h4>YOURLS core</h4>
+          <p>Redirect logic, MySQL schema, click tracking, plugin API — <code>includes/</code>, stock.</p>
+        </div>
+        <div class="arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg></div>
+        <div class="node accent">
+          <p class="lbl">Added</p>
+          <h4>Leanks plugin</h4>
+          <p>Hooks <code>redirect_shorturl</code>; checks password / expiry metadata before a click is logged.</p>
+        </div>
+        <div class="arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h15M13 6l6 6-6 6"/></svg></div>
+        <div class="node">
+          <p class="lbl">Custom</p>
+          <h4>Leanks dashboard</h4>
+          <p>A separate front end in <code>app/</code>, talking to YOURLS' own <code>admin-ajax.php</code>.</p>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>YOURLS is plain PHP, MIT licensed, has no build step, and stores everything in a couple of MySQL tables — a good fit for cheap shared/cPanel hosting. Leanks keeps that core completely stock and adds a small plugin (<code>user/plugins/leanks</code>) plus an entirely custom front end (<code>app/</code>) on top, rather than patching YOURLS' own files. YOURLS itself stays upgradeable in place.</p>
+        <p>Password protection, expiration and click limits are enforced by hooking YOURLS' <code>redirect_shorturl</code> action: before a click is logged and redirected, Leanks checks a small metadata table and can intercept the request with a password prompt or an "expired" page. Everything else — the redirect itself, click counting, referrer/geo logging — is stock YOURLS.</p>
+        <p>The dashboard talks to YOURLS' existing <code>admin-ajax.php</code> for link create/edit/delete, reusing its built-in nonce-based CSRF protection and session auth, plus a handful of custom <code>leanks_*</code> actions the plugin registers for listing, stats, and CSV import.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Installing ---------- -->
+
+  <section class="block" id="installing">
+    <div class="wrap">
+      <p class="eyebrow">Installation</p>
+      <h2>Running in about five minutes.</h2>
+
+      <div class="reqs">
+        <span>PHP 8.0+</span>
+        <span>MySQL 5.7+ or MariaDB</span>
+        <span>pdo_mysql extension</span>
+        <span>Apache + mod_rewrite</span>
+      </div>
+
+      <ol class="steps">
+        <li>
+          <div class="txt">
+            <h4>Create a database and database user</h4>
+            <p>On shared/cPanel hosting the setup wizard connects to an existing database — it usually can't create one itself. In cPanel: <strong>MySQL® Databases</strong> → create a database → create a user → <strong>Add User to Database</strong> with all privileges.</p>
+          </div>
+        </li>
+        <li>
+          <div class="txt">
+            <h4>Upload the repository to your web root</h4>
+            <p>Keep the folder structure intact, e.g. into <code>public_html</code>.</p>
+          </div>
+        </li>
+        <li>
+          <div class="txt">
+            <h4>Run the setup wizard</h4>
+            <p>Visit <code>https://your-domain.com/setup/</code> and enter the database details and an admin username/password. This writes <code>user/config.php</code>, creates the tables, and activates the Leanks plugin automatically.</p>
+          </div>
+        </li>
+        <li>
+          <div class="txt">
+            <h4>Remove the setup folder</h4>
+            <p>Delete (or password-protect) <code>/setup</code> once installed — it can rewrite your database credentials and shouldn't stay reachable.</p>
+          </div>
+        </li>
+        <li>
+          <div class="txt">
+            <h4>Log in</h4>
+            <p>Go to <code>https://your-domain.com/app/</code> with the admin account created in step 3.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="manual-note">
+        <strong>Prefer to configure by hand?</strong> Copy <code>user/config-sample.php</code> to <code>user/config.php</code>, fill in your settings, then visit <code>/admin/install.php</code> (YOURLS' own installer) followed by <code>/admin/plugins.php</code> to activate the "Leanks" plugin.
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Footer ---------- -->
+
+  <footer class="block">
+    <div class="wrap">
+      <div class="foot-row">
+        <div class="foot-brand">
+          <span class="mark"><img src="assets/logomark.svg" alt="" width="26" height="26"></span>
+          <img class="logotype" src="assets/logotype.svg" alt="Leanks" width="102" height="20">
+        </div>
+        <nav class="foot-nav">
+          <a href="#features">Features</a>
+          <a href="#how-it-works">How it works</a>
+          <a href="#installing">Installing</a>
+          <a href="https://github.com/creixems/leanks" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+      </div>
+      <div class="foot-legal">
+        <span>MIT licensed. Bundles YOURLS, qrcode.js and Tabler Icons, all MIT licensed.</span>
+        <span>Made by <a href="https://creixems.com" target="_blank" rel="noopener">Creixems Studio</a></span>
+      </div>
+    </div>
+  </footer>
+</main>
+
+</body>
+</html>
