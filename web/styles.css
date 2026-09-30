@@ -134,7 +134,14 @@ code { font: 0.9em/1.4 var(--mono); }
 .btn-gh:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
 .btn-gh svg { width: 18px; height: 18px; flex: none; }
 
-.cta-note { font-size: 13px; color: var(--faint); }
+.oss {
+  display: inline-block;
+  padding: 6px 12px;
+  font: 600 13px/1.2 var(--body);
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-radius: 20px;
+}
 
 .features { list-style: none; margin: 0; padding: 0; }
 .features li { display: flex; gap: 13px; align-items: flex-start; margin: 18px 0; color: var(--muted); font-size: 15px; }
