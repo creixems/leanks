@@ -24,7 +24,6 @@
   </div>
   <div class="topbar-spacer"></div>
   <button class="btn btn-secondary" id="tags-btn">Tags</button>
-  <button class="btn btn-secondary" id="import-btn">Import CSV</button>
   <div class="user-menu">
     <span id="current-user"></span>
     <button class="btn btn-ghost btn-icon" id="settings-btn" title="Settings">
@@ -355,9 +354,22 @@
       </div>
     </div>
     <div class="field">
+      <label>Accent color</label>
+      <div class="accent-swatches" id="s-accent-swatches"></div>
+      <div class="hint">Tints buttons, borders, backgrounds and icons. Light and dark mode each get their own shade of the color you pick. Saved in this browser.</div>
+    </div>
+    <div class="field">
       <label for="s-default-redirect">Default domain redirect <span style="font-weight:400;color:var(--text-faint);">(optional)</span></label>
       <input type="url" id="s-default-redirect" placeholder="https://example.com">
       <div class="hint">Where visitors land if they open your short domain with no short link after it (e.g. just your bare domain). Leave blank to disable.</div>
+    </div>
+    <div class="field">
+      <label>Data</label>
+      <div class="data-actions">
+        <button type="button" class="btn btn-secondary btn-sm" id="s-import-btn">Import CSV</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="s-export-btn">Export CSV</button>
+      </div>
+      <div class="hint">Export downloads every link (destination, short link, title, creation date, clicks, tags) in the same format Import reads, so you can move to another Leanks install. Passwords, expirations and UTM settings aren't included.</div>
     </div>
     <div class="field">
       <label>Software update</label>

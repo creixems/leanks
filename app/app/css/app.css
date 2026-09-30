@@ -1,15 +1,38 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/* Accent color. Chrome colors (page/card backgrounds, borders, buttons, focus rings, chart, bars,
+   icons) are all derived from ONE hue + chroma pair in OKLCH, so a single choice yields matching
+   light and dark variants: the hue/chroma stay put and only the --l-* lightness values below
+   change per mode. --accent-h / --accent-c are overridden on <html> by js/theme-init.js (first
+   paint) and app.js's applyAccent() from the Settings picker; the values here are the default
+   ("Blue") preset. The semantic --blue/--green/... tokens further down are deliberately NOT
+   accent-driven -- tag colors and analytics category bars must not shift with the accent. */
 :root {
-  --bg: #fafafa;
-  --surface: #ffffff;
-  --border: #e4e4e7;
-  --border-strong: #d4d4d8;
+  --accent-h: 264;
+  --accent-c: 0.21;
+
+  --tint: 1; /* multiplier on how much accent chroma bleeds into backgrounds/borders; dark mode needs more to read as tinted */
+  --l-bg: 0.985;
+  --l-surface: 1;
+  --l-border: 0.915;
+  --l-border-strong: 0.85;
+  --l-accent: 0.55;
+  --l-accent-bg: 0.95;
+  --l-accent-border: 0.82;
+
+  --bg: oklch(var(--l-bg) calc(var(--accent-c) * 0.045 * var(--tint)) var(--accent-h));
+  --surface: oklch(var(--l-surface) calc(var(--accent-c) * 0.012 * var(--tint)) var(--accent-h));
+  --border: oklch(var(--l-border) calc(var(--accent-c) * 0.08 * var(--tint)) var(--accent-h));
+  --border-strong: oklch(var(--l-border-strong) calc(var(--accent-c) * 0.11 * var(--tint)) var(--accent-h));
+  --accent: oklch(var(--l-accent) var(--accent-c) var(--accent-h));
+  --accent-bg: oklch(var(--l-accent-bg) calc(var(--accent-c) * 0.22) var(--accent-h));
+  --accent-border: oklch(var(--l-accent-border) calc(var(--accent-c) * 0.5) var(--accent-h));
+  --accent-ring: color-mix(in srgb, var(--accent) 24%, transparent);
+  --accent-text: #ffffff;
+
   --text: #18181b;
   --text-dim: #71717a;
   --text-faint: #a1a1aa;
-  --accent: #18181b;
-  --accent-text: #ffffff;
   --blue: #2563eb;
   --blue-bg: #eff6ff;
   --green: #16a34a;
@@ -28,6 +51,7 @@
   --radius-lg: 16px;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.04);
   --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.12);
+  accent-color: var(--accent); /* native checkboxes / radios */
   color-scheme: light;
 }
 
@@ -37,15 +61,18 @@
    is applied by a tiny inline script in index.html's <head>, synchronously, before first paint. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0a0a0a;
-    --surface: #151517;
-    --border: #27272a;
-    --border-strong: #3f3f46;
+    --tint: 2.2;
+    --l-bg: 0.15;
+    --l-surface: 0.2;
+    --l-border: 0.29;
+    --l-border-strong: 0.37;
+    --l-accent: 0.72;
+    --l-accent-bg: 0.27;
+    --l-accent-border: 0.45;
+    --accent-text: oklch(0.16 calc(var(--accent-c) * 0.15) var(--accent-h));
     --text: #fafafa;
     --text-dim: #a1a1aa;
     --text-faint: #71717a;
-    --accent: #fafafa;
-    --accent-text: #0a0a0a;
     --blue-bg: #0f1b33;
     --green-bg: #0c2116;
     --red-bg: #2a1010;
@@ -57,15 +84,18 @@
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0a0a0a;
-  --surface: #151517;
-  --border: #27272a;
-  --border-strong: #3f3f46;
+  --tint: 2.2;
+  --l-bg: 0.15;
+  --l-surface: 0.2;
+  --l-border: 0.29;
+  --l-border-strong: 0.37;
+  --l-accent: 0.72;
+  --l-accent-bg: 0.27;
+  --l-accent-border: 0.45;
+  --accent-text: oklch(0.16 calc(var(--accent-c) * 0.15) var(--accent-h));
   --text: #fafafa;
   --text-dim: #a1a1aa;
   --text-faint: #71717a;
-  --accent: #fafafa;
-  --accent-text: #0a0a0a;
   --blue-bg: #0f1b33;
   --green-bg: #0c2116;
   --red-bg: #2a1010;
@@ -165,13 +195,16 @@ main.container {
 .btn-primary { background: var(--accent); color: var(--accent-text); }
 .btn-primary:hover { opacity: 0.85; }
 .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
-.btn-secondary:hover { background: var(--bg); }
+.btn-secondary:hover { background: var(--accent-bg); border-color: var(--accent-border); }
 .btn-ghost { background: transparent; color: var(--text-dim); padding: 6px 10px; }
-.btn-ghost:hover { background: var(--border); color: var(--text); }
+.btn-ghost:hover { background: var(--accent-bg); color: var(--accent); }
 .btn-danger { background: var(--red-bg); color: var(--red); }
 .btn-danger:hover { opacity: 0.8; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-icon { padding: 7px; border-radius: 8px; }
+/* Icon buttons carry the accent color at rest; destructive ones turn red on hover instead. */
+.btn-ghost.btn-icon { color: var(--accent); }
+.btn-ghost.btn-icon[data-action="delete"]:hover { background: var(--red-bg); color: var(--red); }
 .btn-sm { padding: 6px 12px; font-size: 0.78rem; }
 
 /* Inputs */
@@ -192,7 +225,7 @@ input[type=text], input[type=url], input[type=password], input[type=date], input
   font-size: 0.88rem;
   outline: none;
 }
-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-bg); }
+input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
 
 select {
   width: 100%;
@@ -211,7 +244,7 @@ select {
   background-position: right 10px center;
   background-size: 16px;
 }
-select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-bg); }
+select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
 .input-row { display: flex; gap: 10px; }
 .input-row > * { flex: 1; }
 
@@ -378,7 +411,7 @@ details.advanced[open] > summary { color: var(--text); }
 /* Stats modal */
 
 .stat-bars { display: flex; align-items: flex-end; gap: 3px; height: 90px; margin: 12px 0; }
-.stat-bars .bar { flex: 1; background: var(--blue); border-radius: 3px 3px 0 0; min-height: 2px; }
+.stat-bars .bar { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; }
 .mini-list { font-size: 0.82rem; }
 .mini-list .mini-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
 .mini-list .mini-row:last-child { border-bottom: none; }
@@ -443,7 +476,7 @@ details.advanced[open] > summary { color: var(--text); }
   color: var(--text); font-size: 0.85rem; padding: 8px 10px; border-radius: 6px; cursor: pointer;
 }
 .popover-item:hover { background: var(--bg); }
-.popover-item.active { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
+.popover-item.active { background: var(--accent-bg); color: var(--accent); font-weight: 600; }
 .popover-custom-range { display: flex; gap: 6px; align-items: center; padding: 8px; border-top: 1px solid var(--border); margin-top: 4px; }
 .popover-custom-range input { flex: 1; padding: 7px 8px; font-size: 0.8rem; }
 .popover-suggestions:not(:empty) {
@@ -495,7 +528,7 @@ details.advanced[open] > summary { color: var(--text); }
   padding: 7px 8px; border-radius: 6px; overflow: hidden; font-size: 0.83rem;
 }
 .breakdown-row-bar {
-  position: absolute; inset: 0 auto 0 0; background: var(--blue-bg); border-radius: 6px; z-index: 0;
+  position: absolute; inset: 0 auto 0 0; background: var(--accent-bg); border-radius: 6px; z-index: 0;
 }
 .breakdown-row.bar-green .breakdown-row-bar { background: var(--green-bg); }
 .breakdown-row.bar-yellow .breakdown-row-bar { background: var(--yellow-bg); }
@@ -504,7 +537,7 @@ details.advanced[open] > summary { color: var(--text); }
 .breakdown-row-count { position: relative; z-index: 1; font-variant-numeric: tabular-nums; font-weight: 600; flex-shrink: 0; }
 .breakdown-row-icon {
   position: relative; z-index: 1; flex-shrink: 0; width: 18px; height: 18px;
-  display: flex; align-items: center; justify-content: center; color: var(--text-dim);
+  display: flex; align-items: center; justify-content: center; color: var(--accent);
 }
 .breakdown-row-icon img.row-icon-favicon { width: 14px; height: 14px; border-radius: 3px; display: block; }
 .breakdown-row-icon .row-icon-flag { font-size: 0.95rem; line-height: 1; }
@@ -525,7 +558,7 @@ details.advanced[open] > summary { color: var(--text); }
 
 .bulk-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  background: var(--blue-bg); border: 1px solid color-mix(in srgb, var(--blue) 35%, transparent);
+  background: var(--accent-bg); border: 1px solid var(--accent-border);
   border-radius: var(--radius); padding: 10px 16px; margin-bottom: 16px;
   font-size: 0.85rem; font-weight: 600; color: var(--text);
 }
@@ -602,3 +635,22 @@ details.advanced[open] > summary { color: var(--text); }
 .tag-row:last-child { border-bottom: none; }
 .tag-row-count { font-size: 0.78rem; color: var(--text-faint); margin-left: 8px; }
 .tag-row-actions { display: inline-flex; gap: 4px; margin-left: auto; }
+
+/* Accent-color picker + Data actions, inside the Settings modal */
+
+.accent-swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.accent-swatch {
+  --sw-h: 264; --sw-c: 0.21;
+  position: relative; width: 28px; height: 28px; padding: 0; border-radius: 50%; cursor: pointer;
+  border: none; background: oklch(var(--l-accent) var(--sw-c) var(--sw-h));
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.accent-swatch:hover { transform: scale(1.08); }
+.accent-swatch.active { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px oklch(var(--l-accent) var(--sw-c) var(--sw-h)); }
+.accent-swatch:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+/* "Custom" swatch: a rainbow ring until a custom color is active, then that color. The real
+   <input type=color> is stretched invisibly over it, so a click opens the native picker. */
+.accent-swatch-custom { background: conic-gradient(from 90deg, #f43f5e, #f59e0b, #84cc16, #10b981, #06b6d4, #3b82f6, #8b5cf6, #f43f5e); overflow: hidden; }
+.accent-swatch-custom.active { background: oklch(var(--l-accent) var(--sw-c) var(--sw-h)); }
+.accent-swatch-custom input { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); opacity: 0; cursor: pointer; border: none; padding: 0; }
+.data-actions { display: flex; gap: 8px; flex-wrap: wrap; }

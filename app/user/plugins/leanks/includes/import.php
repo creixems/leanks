@@ -81,6 +81,42 @@ function leanks_import_extract_keyword( $value ) {
     return end( $parts );
 }
 
+/**
+ * Split a Tags cell into tag names. Splits on "," or ";" -- but a backslash escapes the next
+ * character, so a tag whose own name contains a comma/semicolon (or a backslash) survives an
+ * export -> import round trip (export.php escapes with the same rule). Plain "a, b, c" cells,
+ * as produced by dub.co, contain no backslashes and split exactly as before.
+ */
+function leanks_import_split_tags( $cell ) {
+    $names = [];
+    $current = '';
+    $len = strlen( $cell );
+    for ( $i = 0; $i < $len; $i++ ) {
+        $ch = $cell[ $i ];
+        if ( $ch === '\\' && $i + 1 < $len && strpos( ',;\\', $cell[ $i + 1 ] ) !== false ) {
+            $current .= $cell[ ++$i ];
+        } elseif ( $ch === ',' || $ch === ';' ) {
+            $names[] = $current;
+            $current = '';
+        } else {
+            $current .= $ch;
+        }
+    }
+    $names[] = $current;
+    return array_values( array_filter( array_map( 'trim', $names ), fn( $n ) => $n !== '' ) );
+}
+
+/**
+ * Undo export.php's spreadsheet-formula guard: it prefixes a title that starts with = + - @ with
+ * an apostrophe, and that apostrophe is not part of the real title.
+ */
+function leanks_import_unguard_text( $value ) {
+    if ( strlen( $value ) > 1 && $value[0] === "'" && strpos( "=+-@\t\r", $value[1] ) !== false ) {
+        return substr( $value, 1 );
+    }
+    return $value;
+}
+
 function leanks_ajax_import() {
     leanks_verify_nonce_json( $_POST['nonce'] ?? '' );
 
@@ -145,6 +181,7 @@ function leanks_ajax_import() {
             continue;
         }
 
+        $title = leanks_import_unguard_text( $title );
         $keyword = $short !== '' ? leanks_import_extract_keyword( $short ) : '';
         // Fall back to the URL itself as a title so yourls_add_new_link() doesn't try to fetch
         // the remote page's <title> for every row with no title -- slow and unreliable in bulk.
@@ -185,11 +222,8 @@ function leanks_ajax_import() {
 
         if ( $tags !== '' ) {
             $tag_ids = [];
-            foreach ( preg_split( '/[,;]/', $tags ) as $tag_name ) {
-                $tag_name = trim( $tag_name );
-                if ( $tag_name !== '' ) {
-                    $tag_ids[] = leanks_find_or_create_tag_by_name( $tag_name );
-                }
+            foreach ( leanks_import_split_tags( $tags ) as $tag_name ) {
+                $tag_ids[] = leanks_find_or_create_tag_by_name( $tag_name );
             }
             if ( !empty( $tag_ids ) ) {
                 leanks_set_link_tags( $return['url']['keyword'], $tag_ids );

@@ -55,6 +55,7 @@
     $('#f-keyword-domain').textContent = '(' + boot.site_url.replace(/^https?:\/\//, '') + '/)';
     $('#c-keyword').placeholder = boot.site_url.replace(/^https?:\/\//, '') + '/ (auto)';
     bindEvents();
+    renderAccentSwatches();
     loadLinks();
     checkForUpdate();
     Analytics.init();
@@ -78,11 +79,9 @@
     $$('.nav-tab').forEach((t) => t.classList.toggle('active', t.dataset.view === view));
     $('#view-links').classList.toggle('hidden', view !== 'links');
     $('#view-analytics').classList.toggle('hidden', view !== 'analytics');
-    // Tags/Import are Links-view-only actions; the toolbar (incl. search) and the inline create
+    // Tags is a Links-view-only action; the toolbar (incl. search) and the inline create
     // section live inside #view-links itself, so they're already hidden/shown with that view.
-    [$('#tags-btn'), $('#import-btn')].forEach((el) => {
-      el.classList.toggle('hidden', view !== 'links');
-    });
+    $('#tags-btn').classList.toggle('hidden', view !== 'links');
     if (view === 'analytics') Analytics.show();
   }
 
@@ -488,11 +487,15 @@
     $('#confirm-delete-btn').addEventListener('click', onConfirmDelete);
     $('#qr-download').addEventListener('click', downloadQr);
 
-    $('#import-btn').addEventListener('click', openImport);
     $('#tags-btn').addEventListener('click', openTagsModal);
     $('#settings-btn').addEventListener('click', openSettingsModal);
     $('#settings-save-btn').addEventListener('click', onSaveSettings);
     $('#s-check-update-btn').addEventListener('click', () => refreshUpdateStatus(true));
+    $('#s-import-btn').addEventListener('click', () => {
+      closeModal('settings-modal-backdrop');
+      openImport();
+    });
+    $('#s-export-btn').addEventListener('click', onExportCsv);
     $$('#s-theme-toggle button').forEach((btn) => btn.addEventListener('click', () => {
       setTheme(btn.dataset.themeMode);
       updateThemeToggleUI();
@@ -1259,11 +1262,119 @@
     $$('#s-theme-toggle button').forEach((btn) => btn.classList.toggle('active', btn.dataset.themeMode === current));
   }
 
+  // ---------- accent color ----------
+  // One hue + chroma pair (OKLCH) drives every chrome color; app.css derives the light and dark
+  // variants from it by fixing lightness per mode, so there's nothing mode-specific to store.
+  // The presets sit on the same even-hue OKLCH wheel as SankeyFlow's palette. "Graphite" (chroma
+  // 0) is the neutral option. Stored per browser like the theme, and applied before first paint
+  // by js/theme-init.js -- the two must agree on the 'leanks-accent' key and its {h, c} shape.
+  const ACCENT_KEY = 'leanks-accent';
+  const ACCENT_PRESETS = [
+    { id: 'blue',     name: 'Blue',     h: 264,  c: 0.21 },
+    { id: 'sky',      name: 'Sky',      h: 232,  c: 0.16 },
+    { id: 'teal',     name: 'Teal',     h: 190,  c: 0.12 },
+    { id: 'green',    name: 'Green',    h: 152,  c: 0.19 },
+    { id: 'amber',    name: 'Amber',    h: 75,   c: 0.15 },
+    { id: 'orange',   name: 'Orange',   h: 48,   c: 0.19 },
+    { id: 'red',      name: 'Red',      h: 25,   c: 0.21 },
+    { id: 'pink',     name: 'Pink',     h: 350,  c: 0.2  },
+    { id: 'violet',   name: 'Violet',   h: 300,  c: 0.21 },
+    { id: 'graphite', name: 'Graphite', h: 264,  c: 0    },
+  ];
+  const DEFAULT_ACCENT_HEX = '#6366f1';
+
+  // sRGB hex -> OKLCH hue/chroma (Björn Ottosson's OKLab matrices). Lightness is dropped on
+  // purpose: the picked color's shade is re-derived per light/dark mode by the stylesheet.
+  function hexToOklch(hex) {
+    const lin = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    const r = lin(parseInt(hex.slice(1, 3), 16));
+    const g = lin(parseInt(hex.slice(3, 5), 16));
+    const b = lin(parseInt(hex.slice(5, 7), 16));
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+    const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    const a = 1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s;
+    const bb = 0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s;
+    let h = Math.atan2(bb, a) * 180 / Math.PI;
+    if (h < 0) h += 360;
+    return { h: Math.round(h * 10) / 10, c: Math.min(0.25, Math.round(Math.hypot(a, bb) * 1000) / 1000) };
+  }
+
+  function getAccent() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(ACCENT_KEY) || 'null');
+      if (saved && isFinite(saved.h) && isFinite(saved.c)) return saved;
+    } catch (e) { /* fall through to the default */ }
+    return { id: 'blue', h: ACCENT_PRESETS[0].h, c: ACCENT_PRESETS[0].c };
+  }
+
+  function applyAccent(accent) {
+    document.documentElement.style.setProperty('--accent-h', String(accent.h));
+    document.documentElement.style.setProperty('--accent-c', String(accent.c));
+  }
+
+  function setAccent(accent) {
+    try { localStorage.setItem(ACCENT_KEY, JSON.stringify(accent)); } catch (e) { /* won't persist */ }
+    applyAccent(accent);
+    updateAccentUI();
+  }
+
+  function renderAccentSwatches() {
+    const box = $('#s-accent-swatches');
+    box.innerHTML = ACCENT_PRESETS.map((p) => `
+      <button type="button" class="accent-swatch" data-accent-id="${p.id}" title="${p.name}" aria-label="${p.name}"
+        style="--sw-h:${p.h};--sw-c:${p.c};"></button>`).join('') + `
+      <span class="accent-swatch accent-swatch-custom" id="s-accent-custom" title="Custom color">
+        <input type="color" id="s-accent-custom-input" aria-label="Custom accent color" value="${DEFAULT_ACCENT_HEX}">
+      </span>`;
+    box.querySelectorAll('[data-accent-id]').forEach((btn) => btn.addEventListener('click', () => {
+      const p = ACCENT_PRESETS.find((x) => x.id === btn.dataset.accentId);
+      setAccent({ id: p.id, h: p.h, c: p.c });
+    }));
+    $('#s-accent-custom-input').addEventListener('input', (e) => {
+      const { h, c } = hexToOklch(e.target.value);
+      setAccent({ id: 'custom', h, c, hex: e.target.value });
+    });
+  }
+
+  function updateAccentUI() {
+    const current = getAccent();
+    $$('#s-accent-swatches [data-accent-id]').forEach((btn) => btn.classList.toggle('active', btn.dataset.accentId === current.id));
+    const custom = $('#s-accent-custom');
+    custom.classList.toggle('active', current.id === 'custom');
+    if (current.id === 'custom') {
+      custom.style.setProperty('--sw-h', current.h);
+      custom.style.setProperty('--sw-c', current.c);
+      if (current.hex) $('#s-accent-custom-input').value = current.hex;
+    }
+  }
+
+  // ---------- export CSV ----------
+  async function onExportCsv() {
+    const btn = $('#s-export-btn');
+    btn.disabled = true;
+    try {
+      const blob = await Api.exportCsv();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `leanks-links-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    } catch (err) {
+      toast(err.message || 'Export failed', true);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
   // ---------- settings modal ----------
   async function openSettingsModal() {
     $('#s-default-redirect').value = '';
     openModal('settings-modal-backdrop');
     updateThemeToggleUI();
+    updateAccentUI();
     try {
       const res = await Api.getSettings();
       $('#s-default-redirect').value = res.default_redirect || '';

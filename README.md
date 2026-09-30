@@ -19,8 +19,12 @@ Leanks is YOURLS underneath (redirect engine, database, click tracking) with:
   hours through year-to-date, plus a custom range), filters (link, country, continent, device,
   browser, OS, referrer), and ranked breakdowns by short link, destination URL, referrer, UTM
   parameter, country, continent, device, browser and OS.
-- **CSV import** -- migrate links from another shortener via CSV, with column auto-detection,
-  duplicate/error reporting, and original creation dates preserved.
+- **CSV import & export** -- migrate links from another shortener via CSV, with column
+  auto-detection, duplicate/error reporting, and original creation dates preserved. Export writes
+  the same format back out, so moving between two Leanks installs is export -> import (both live
+  in Settings).
+- **Themes & accent color** -- light/dark/system, plus an accent color (presets or your own) that
+  tints the whole UI, with light and dark shades derived automatically.
 - **One-click updates** -- the dashboard notices new releases and applies them in place, with an
   automatic backup and checksum verification before anything is touched.
 
@@ -113,6 +117,16 @@ Each row is created through the same `yourls_add_new_link()`
 YOURLS itself uses, so duplicate URLs/keywords are caught the normal way and reported back per-row
 rather than aborting the whole import; a supplied creation date is applied afterwards. Files over
 2000 rows are processed in the first batch only -- re-upload the remainder in a second pass.
+
+### CSV export
+
+`app/user/plugins/leanks/includes/export.php` streams every link as a CSV with dub.co's column
+names (Destination URL, Short link, Title, Creation date, Clicks, Tags), so the file re-imports
+cleanly. Passwords, expirations and UTM fields aren't part of the import format and don't travel;
+tag names are exported without their colors (re-imported tags get the default color). Commas,
+semicolons and backslashes inside a tag name are backslash-escaped so they survive the round
+trip, and titles starting with `=`, `+`, `-` or `@` get a leading apostrophe so a spreadsheet
+won't run them as formulas (import strips it again).
 
 ### Updating
 

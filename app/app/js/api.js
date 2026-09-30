@@ -131,6 +131,19 @@ const Api = (function () {
       return call('leanks_save_settings', { ...fields, nonce: b.nonce_meta }, 'POST');
     },
 
+    // Fetched as a blob (rather than navigating to the URL) so a failure -- e.g. an expired
+    // session, which admin-ajax.php answers with JSON, not a file -- can surface as a toast
+    // instead of replacing the dashboard with a raw error page.
+    async exportCsv() {
+      const url = new URL(AJAX_URL, window.location.href);
+      url.searchParams.set('action', 'leanks_export');
+      const res = await fetch(url, { credentials: 'same-origin' });
+      if (!res.ok || !(res.headers.get('Content-Type') || '').includes('text/csv')) {
+        throw new Error('Export failed -- try reloading the page and logging in again.');
+      }
+      return res.blob();
+    },
+
     async importCsv(file) {
       const b = await this.bootstrap();
       const url = new URL(AJAX_URL, window.location.href);

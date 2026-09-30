@@ -20,6 +20,7 @@ require_once __DIR__ . '/includes/settings.php';
 require_once __DIR__ . '/includes/redirect-gate.php';
 require_once __DIR__ . '/includes/ajax.php';
 require_once __DIR__ . '/includes/import.php';
+require_once __DIR__ . '/includes/export.php';
 require_once __DIR__ . '/includes/update.php';
 
 // Point back to the Leanks dashboard from the stock YOURLS admin menu, for discoverability.

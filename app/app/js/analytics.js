@@ -299,13 +299,13 @@ const Analytics = (function () {
       <svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}" id="an-chart-svg" preserveAspectRatio="none">
         <defs>
           <linearGradient id="an-chart-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="var(--blue)" stop-opacity="0.28"/>
-            <stop offset="100%" stop-color="var(--blue)" stop-opacity="0"/>
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
           </linearGradient>
         </defs>
         ${gridLines}
         <polygon points="${areaPoints}" fill="url(#an-chart-fill)" stroke="none"/>
-        <polyline points="${linePoints}" fill="none" stroke="var(--blue)" stroke-width="2"/>
+        <polyline points="${linePoints}" fill="none" stroke="var(--accent)" stroke-width="2"/>
         <rect x="${padL}" y="${padT}" width="${Math.max(0, innerW)}" height="${Math.max(0, innerH)}" fill="transparent" id="an-chart-overlay" style="cursor:crosshair;"/>
       </svg>
       <div class="chart-tooltip hidden" id="an-chart-tooltip"></div>`;
