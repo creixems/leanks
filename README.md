@@ -61,7 +61,7 @@ plain CSS, replacing YOURLS' classic PHP admin panel look without touching YOURL
 
 ## Requirements
 
-- PHP 8.0+
+- PHP 8.1+
 - MySQL 5.7+ or MariaDB, with the `pdo_mysql` extension
 - Apache with `mod_rewrite` (for pretty short URLs via `.htaccess`) -- other web servers work too,
   see [YOURLS' own docs](https://docs.yourls.org) for nginx/other rewrite rules
@@ -110,7 +110,7 @@ app/                    The deployable PHP install -- upload its *contents* to y
     plugins/leanks/         The plugin: link metadata, tags, analytics, import/export,
                             settings, self-updater, redirect gating
   licenses/               Third-party license texts (YOURLS, qrcode.js, Tabler Icons)
-web/                    The leanks.app marketing site (static HTML/CSS) -- repo-only, not deployed
+web/                    The marketing site for leanks.cc (static HTML/CSS) -- repo-only, not deployed
                          to the PHP host
 branding/               Logo and other brand assets -- repo-only
 ```

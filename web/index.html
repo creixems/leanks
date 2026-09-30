@@ -7,10 +7,20 @@
 <meta name="description" content="YOURLS for 2026: a self-hosted URL shortener with a modern dashboard. Password protection, expiration, UTM tags, QR codes and analytics — no SaaS bill, and your data stays on your own PHP/MySQL hosting.">
 <link rel="icon" type="image/svg+xml" href="assets/logomark.svg">
 <link rel="stylesheet" href="styles.css">
-<meta property="og:title" content="Leanks">
-<meta property="og:description" content="YOURLS, for 2026. A self-hosted link shortener with a modern dashboard — no SaaS bill, and you own your data.">
-<meta property="og:image" content="assets/dashboard.png">
+<link rel="canonical" href="https://leanks.cc/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://leanks.cc/">
+<meta property="og:site_name" content="Leanks">
+<meta property="og:title" content="Leanks — YOURLS, for 2026">
+<meta property="og:description" content="A self-hosted link shortener with a modern dashboard — no SaaS bill, and you own your data.">
+<meta property="og:image" content="https://leanks.cc/assets/social-preview.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Leanks: YOURLS, for 2026 — with the Leanks dashboard">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Leanks — YOURLS, for 2026">
+<meta name="twitter:description" content="A self-hosted link shortener with a modern dashboard — no SaaS bill, and you own your data.">
+<meta name="twitter:image" content="https://leanks.cc/assets/social-preview.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -23,7 +33,7 @@
       <div class="brand">
         <span class="mark"><img src="assets/logomark.svg" alt="" width="52" height="52"></span>
         <h1><img class="logotype" src="assets/logotype.svg" alt="Leanks" width="153" height="30"></h1>
-        <span class="version">v1.3.1</span>
+        <span class="version">v1.4.0</span>
       </div>
 
       <p class="tagline">YOURLS, <em>for 2026.</em></p>
@@ -62,7 +72,10 @@
 
     <div class="shot">
       <figure>
-        <img src="assets/dashboard.png" width="1280" height="800" alt="The Leanks dashboard: total links and clicks at the top, a list of short links below with click counts, creation dates, and QR / stats / edit / delete actions">
+        <picture>
+          <source srcset="assets/dashboard-dark.png" media="(prefers-color-scheme: dark)">
+          <img src="assets/dashboard.png" width="2480" height="1560" alt="The Leanks dashboard: a one-line create form, filters and search, totals, and a list of short links with tags, click counts, creation dates and QR / stats / edit / delete actions">
+        </picture>
         <figcaption>The Leanks dashboard — a link list, not a plugin admin screen.</figcaption>
       </figure>
     </div>
@@ -76,8 +89,12 @@
       <h2>What a hosted shortener charges for, included.</h2>
       <p class="lede">Leanks wraps YOURLS' redirect engine with the features a paid link-management product sells as premium tiers — running on hosting you already pay for.</p>
 
-      <div class="feat-layout">
-        <div class="feat-grid">
+      <div class="feat-grid">
+          <div class="feat-card">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3 5 14h6l-1 7 8-11h-6l1-7Z"/></svg></span>
+            <h3>One-line link creation</h3>
+            <p>Destination, short link and title in a single row. Password, expiration, tags and UTM are one click away.</p>
+          </div>
           <div class="feat-card">
             <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>
             <h3>Password-protected links</h3>
@@ -94,6 +111,16 @@
             <p>A built-in UTM form with a live preview of the final URL.</p>
           </div>
           <div class="feat-card">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/></svg></span>
+            <h3>Tags</h3>
+            <p>Colored tags you can assign to links, show as a column, and filter by.</p>
+          </div>
+          <div class="feat-card">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg></span>
+            <h3>A list that scales</h3>
+            <p>Sort by clicks or date, search, bulk-delete, favicons on every link, and a remembered page size.</p>
+          </div>
+          <div class="feat-card">
             <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3v-3ZM19 14h2M14 19h2M19 19h2"/></svg></span>
             <h3>QR codes</h3>
             <p>Generated client-side for any link, downloadable as PNG.</p>
@@ -101,29 +128,43 @@
           <div class="feat-card">
             <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20M6 20v-7M12 20v-12M18 20v-4"/></svg></span>
             <h3>Analytics dashboard</h3>
-            <p>Clicks across 9 time ranges, filtered by country, device, browser, referrer and more — with ranked breakdowns.</p>
+            <p>Clicks across 9 time ranges, filtered by country, device, browser, referrer and more — with flags and icons.</p>
           </div>
           <div class="feat-card">
-            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
-            <h3>CSV import</h3>
-            <p>Migrate from another shortener with column auto-detection and per-row duplicate/error reporting.</p>
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18v-6a4 4 0 0 1 4-4h12M16 4l4 4-4 4"/></svg></span>
+            <h3>Default domain redirect</h3>
+            <p>Send visitors who open your bare short domain to any URL you choose, instead of a blank page.</p>
+          </div>
+          <div class="feat-card">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4v12M4 12l4 4 4-4M16 20V8M12 12l4-4 4 4"/></svg></span>
+            <h3>CSV import &amp; export</h3>
+            <p>Migrate in from another shortener, or move between Leanks installs. Clicks, dates and tags travel too.</p>
+          </div>
+          <div class="feat-card">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor"/></svg></span>
+            <h3>Light, dark, your color</h3>
+            <p>Light, dark or system theme, plus any accent color. Shades follow automatically.</p>
           </div>
           <div class="feat-card">
             <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg></span>
             <h3>One-click updates</h3>
             <p>Checksum-verified, with an automatic backup and rollback if anything goes wrong.</p>
           </div>
-          <div class="feat-card">
-            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></svg></span>
-            <h3>Stock YOURLS core</h3>
-            <p>The redirect engine, schema and plugin API stay untouched — YOURLS itself keeps upgrading fine.</p>
-          </div>
-        </div>
+      </div>
 
-        <div class="feat-shot">
-          <img src="assets/create-link-modal.png" width="1280" height="800" alt="The Leanks create-link modal, showing destination URL, short link, password protection toggle, expiration date and max clicks, and UTM campaign tag fields with a live preview">
-          <p>Every option in one form — no separate settings pages.</p>
-        </div>
+      <div class="gallery">
+        <figure>
+          <img src="assets/create-link.png" width="2160" height="1468" loading="lazy" alt="The create-link form with password protection, expiration, tags and UTM campaign fields, and a live preview of the final URL">
+          <figcaption>Every option in one form, with a live UTM preview.</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/analytics.png" width="2480" height="2462" loading="lazy" alt="The analytics page: a clicks chart with time-range and filter controls, and ranked breakdowns by link, referrer, country, device, browser and OS">
+          <figcaption>Analytics with filters and ranked breakdowns.</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/settings.png" width="2480" height="1560" loading="lazy" alt="The settings page: theme, accent color, default domain redirect, and CSV import and export">
+          <figcaption>Theme, accent color, and import/export in Settings.</figcaption>
+        </figure>
       </div>
     </div>
   </section>
@@ -171,7 +212,7 @@
       <h2>Running in about five minutes.</h2>
 
       <div class="reqs">
-        <span>PHP 8.0+</span>
+        <span>PHP 8.1+</span>
         <span>MySQL 5.7+ or MariaDB</span>
         <span>pdo_mysql extension</span>
         <span>Apache + mod_rewrite</span>
