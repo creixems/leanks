@@ -5,28 +5,45 @@ A self-hosted URL shortener with a modern, SaaS-style dashboard, built on top of
 step, no Docker, no serverless platform required.
 
 ![Leanks dashboard](.github/screenshots/dashboard.png)
-![Create link modal with password protection and UTM tags](.github/screenshots/create-link-modal.png)
+
+<p align="center">
+  <img src=".github/screenshots/analytics.png" alt="Analytics dashboard" width="49%">
+  <img src=".github/screenshots/dashboard-dark.png" alt="Dark mode with a custom accent color" width="49%">
+</p>
 
 Leanks is YOURLS underneath (redirect engine, database, click tracking) with:
 
 - A custom dashboard (vanilla HTML/CSS/JS, no framework) that looks and feels like a modern SaaS
   link manager instead of a classic PHP admin panel.
+- **One-line link creation** -- destination, short link and title sit in a single row at the top
+  of the page; password, expiration, tags and UTM options are one click away.
 - **Password-protected links** -- require a password before a short link redirects.
 - **Link expiration** -- by date, by max click count, or both.
 - **UTM campaign tags** -- a built-in UTM builder with a live preview of the final destination URL.
+- **Tags** -- colored tags you can assign to links, show as a column, and filter by.
+- **A links list that scales** -- sortable by clicks or date, filter by tag, search, selectable
+  rows with bulk delete, favicons next to every destination, and remembered page size and sort.
 - **QR codes** -- generated client-side for any link, downloadable as PNG.
 - **Analytics** -- a dedicated dashboard page with a clicks chart across 9 time ranges (last 24
   hours through year-to-date, plus a custom range), filters (link, country, continent, device,
   browser, OS, referrer), and ranked breakdowns by short link, destination URL, referrer, UTM
-  parameter, country, continent, device, browser and OS.
-- **CSV import & export** -- migrate links from another shortener via CSV, with column
-  auto-detection, duplicate/error reporting, and original creation dates preserved. Export writes
-  the same format back out, so moving between two Leanks installs is export -> import (both live
-  in Settings).
-- **Themes & accent color** -- light/dark/system, plus an accent color (presets or your own) that
-  tints the whole UI, with light and dark shades derived automatically.
+  parameter, country, continent, device, browser and OS -- with country names and flags, and
+  browser/OS/device icons.
+- **Default domain redirect** -- send visitors who open your bare short domain to any URL you
+  choose, instead of a blank page or directory listing.
+- **CSV import & export** -- migrate links from another shortener (or between two Leanks
+  installs) via CSV, with column auto-detection, duplicate/error reporting, and original creation
+  dates, click counts and tags preserved. Both live in Settings.
+- **Light, dark and system themes, plus your own accent color** -- pick a preset or any color;
+  buttons, borders, backgrounds and icons follow it, with light and dark shades derived
+  automatically.
 - **One-click updates** -- the dashboard notices new releases and applies them in place, with an
   automatic backup and checksum verification before anything is touched.
+
+<p align="center">
+  <img src=".github/screenshots/create-link.png" alt="Creating a link with password protection and UTM tags" width="49%">
+  <img src=".github/screenshots/settings.png" alt="Settings: theme, accent color, import/export" width="49%">
+</p>
 
 ## Why YOURLS underneath
 
@@ -80,15 +97,19 @@ app/                    The deployable PHP install -- upload its *contents* to y
   app/                    The Leanks dashboard (vanilla HTML/CSS/JS)
     auth.php              Thin JSON bridge into YOURLS' own login/session
     index.html, login.html
-    css/app.css            Design system (modern SaaS style)
-    js/app.js, api.js, login.js
+    css/app.css            Design system (light/dark tokens, accent color derivation)
+    js/app.js              Links view, settings, theme/accent, import/export UI
+    js/analytics.js        Analytics view (chart, filters, breakdowns)
+    js/api.js, ui.js, login.js, theme-init.js
     js/vendor/qrcode.js     Vendored QR code generator (MIT, see licenses/)
+    images/                Leanks logo and favicons
   includes/               Stock YOURLS core (untouched)
   setup/                  Web-based install wizard
   user/
     config-sample.php      Manual-install config template
-    plugins/leanks/         The plugin: password/expiration/UTM metadata + redirect gating
-  licenses/               Third-party license texts (YOURLS, qrcode.js)
+    plugins/leanks/         The plugin: link metadata, tags, analytics, import/export,
+                            settings, self-updater, redirect gating
+  licenses/               Third-party license texts (YOURLS, qrcode.js, Tabler Icons)
 web/                    The leanks.app marketing site (static HTML/CSS) -- repo-only, not deployed
                          to the PHP host
 branding/               Logo and other brand assets -- repo-only
@@ -105,7 +126,7 @@ YOURLS.
 
 The dashboard talks to YOURLS' existing `admin-ajax.php` for link create/edit/delete (reusing its
 built-in nonce-based CSRF protection and session auth), plus a handful of custom `leanks_*`
-actions the plugin registers on the same endpoint for listing, stats, metadata, and CSV import.
+actions the plugin registers on the same endpoint for listing, stats, analytics, tags, metadata, settings, and CSV import/export.
 
 ### CSV import
 
