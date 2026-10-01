@@ -29,6 +29,11 @@ const UI = (function () {
     const rect = anchorEl.getBoundingClientRect();
     pop.style.top = (rect.bottom + window.scrollY + 6) + 'px';
     pop.style.left = (rect.left + window.scrollX) + 'px';
+    // Anchors near the right edge (e.g. the Links toolbar's Display button): right-align the
+    // popover to its anchor instead of letting it run off-screen, and never past the left edge.
+    if (rect.left + pop.offsetWidth > document.documentElement.clientWidth - 8) {
+      pop.style.left = Math.max(8, rect.right + window.scrollX - pop.offsetWidth) + 'px';
+    }
   }
 
   function closePopover() {

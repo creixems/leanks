@@ -16,9 +16,14 @@
   --l-surface: 1;
   --l-border: 0.915;
   --l-border-strong: 0.85;
-  --l-accent: 0.55;
+  --l-accent-base: 0.55;
+  --l-accent-neutral: 0.21; /* a (near-)gray accent -- Graphite, or a gray custom pick -- renders near-black in light mode, near-white in dark, like the original monochrome look, instead of a mid gray */
+  --neutral: 0; /* 1 when the chosen accent has ~no chroma; set from JS alongside --accent-c */
+  --l-accent: calc(var(--l-accent-base) + (var(--l-accent-neutral) - var(--l-accent-base)) * var(--neutral));
   --l-accent-bg: 0.95;
   --l-accent-border: 0.82;
+  --l-tag-bg: 0.95;
+  --l-tag-fg: 0.45;
 
   --bg: oklch(var(--l-bg) calc(var(--accent-c) * 0.045 * var(--tint)) var(--accent-h));
   --surface: oklch(var(--l-surface) calc(var(--accent-c) * 0.012 * var(--tint)) var(--accent-h));
@@ -66,9 +71,12 @@
     --l-surface: 0.2;
     --l-border: 0.29;
     --l-border-strong: 0.37;
-    --l-accent: 0.72;
+    --l-accent-base: 0.72;
+    --l-accent-neutral: 0.985;
     --l-accent-bg: 0.27;
     --l-accent-border: 0.45;
+    --l-tag-bg: 0.3;
+    --l-tag-fg: 0.82;
     --accent-text: oklch(0.16 calc(var(--accent-c) * 0.15) var(--accent-h));
     --text: #fafafa;
     --text-dim: #a1a1aa;
@@ -89,9 +97,12 @@
   --l-surface: 0.2;
   --l-border: 0.29;
   --l-border-strong: 0.37;
-  --l-accent: 0.72;
+  --l-accent-base: 0.72;
+  --l-accent-neutral: 0.985;
   --l-accent-bg: 0.27;
   --l-accent-border: 0.45;
+  --l-tag-bg: 0.3;
+  --l-tag-fg: 0.82;
   --accent-text: oklch(0.16 calc(var(--accent-c) * 0.15) var(--accent-h));
   --text: #fafafa;
   --text-dim: #a1a1aa;
@@ -373,7 +384,14 @@ table.links-table { width: 100%; border-collapse: collapse; }
   display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
 }
 .modal-header h2 { font-size: 1.05rem; margin: 0; }
-.modal-close { border: none; background: transparent; cursor: pointer; color: var(--text-dim); padding: 4px; }
+/* 36x36 hit target; the negative margin keeps the glyph optically aligned with the modal's edge. */
+.modal-close {
+  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 36px; height: 36px; margin: -6px -8px -6px 0; padding: 0; border: none; border-radius: 8px;
+  background: transparent; cursor: pointer; color: var(--text-dim); font-size: 1.6rem; line-height: 1;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.modal-close:hover { background: var(--accent-bg); color: var(--accent); }
 .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 
 .section-label {
@@ -411,6 +429,9 @@ details.advanced[open] > summary { color: var(--text); }
 /* Stats modal */
 
 .stat-bars { display: flex; align-items: flex-end; gap: 3px; height: 90px; margin: 12px 0; }
+.stat-bars-wrap { position: relative; }
+.chart-tooltip.stat-tooltip { top: -4px; transform: translate(-50%, -100%); }
+.stat-bars .bar:hover { opacity: 0.75; }
 .stat-bars .bar { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; }
 .mini-list { font-size: 0.82rem; }
 .mini-list .mini-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
@@ -551,10 +572,14 @@ details.advanced[open] > summary { color: var(--text); }
 .create-link-row .field-url { flex: 2 1 260px; }
 .create-link-row .btn { flex: 0 0 auto; white-space: nowrap; }
 
-/* Links-list toolbar (Filter / Display / search) + bulk-select action bar */
+/* Links-list toolbar (search fills the row, Display button on the right) + bulk-select action bar */
 
-.list-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-.list-toolbar .topbar-search { max-width: 320px; flex: 1; }
+.list-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.list-toolbar .topbar-search { flex: 1; max-width: none; min-width: 0; }
+.btn-count {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 999px; background: var(--accent); color: var(--accent-text); font-size: 0.7rem; font-weight: 700;
+}
 
 .bulk-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -603,29 +628,33 @@ details.advanced[open] > summary { color: var(--text); }
 }
 .tag-picker-row input { cursor: pointer; }
 .tag-picker-new {
-  display: flex; gap: 6px; padding: 8px 4px 2px; border-top: 1px solid var(--border); margin-top: 4px;
+  display: flex; flex-direction: column; gap: 10px; padding: 10px 4px 4px; border-top: 1px solid var(--border); margin-top: 4px;
 }
+.tag-picker-new-row { display: flex; gap: 6px; }
 .tag-picker-new input {
   flex: 1; padding: 7px 8px; border-radius: 6px; border: 1px solid var(--border-strong);
   background: var(--surface); color: var(--text); font-size: 0.8rem;
 }
 
-/* Color pills -- labeled color-choice buttons used in the tag create/edit dialog and the
-   inline "new tag" mini-form inside the tag picker popover. border-color: currentColor means
-   each pill's selection ring automatically matches its own hue. */
-.color-pill-row { display: flex; gap: 8px; flex-wrap: wrap; }
-.color-pill {
-  padding: 6px 14px; border-radius: 8px; border: 2px solid transparent; cursor: pointer;
-  font-size: 0.82rem; font-weight: 600;
+/* Tag colors: 8 hues on the same OKLCH wheel as the accent presets. `.tag-<name>` only sets the
+   hue (--th); `.tag-tint` turns that into a chip (light tinted background, strong text) and
+   `.tag-swatch` into a round color-choice button. Legacy names (yellow/purple/brown/gray) still
+   render through the old `.badge-*` classes. */
+.tag-red { --th: 25; } .tag-orange { --th: 48; } .tag-amber { --th: 75; } .tag-green { --th: 152; }
+.tag-teal { --th: 190; } .tag-blue { --th: 264; } .tag-violet { --th: 300; } .tag-pink { --th: 350; }
+.tag-tint {
+  background: oklch(var(--l-tag-bg) 0.045 var(--th));
+  color: oklch(var(--l-tag-fg) 0.16 var(--th));
 }
-.color-pill.active { border-color: currentColor; }
-.color-pill.pill-red { background: var(--red-bg); color: var(--red); }
-.color-pill.pill-yellow { background: var(--yellow-bg); color: var(--yellow); }
-.color-pill.pill-green { background: var(--green-bg); color: var(--green); }
-.color-pill.pill-blue { background: var(--blue-bg); color: var(--blue); }
-.color-pill.pill-purple { background: var(--purple-bg); color: var(--purple); }
-.color-pill.pill-brown { background: var(--brown-bg); color: var(--brown); }
-.color-pill.pill-gray { background: var(--border); color: var(--text-dim); }
+.tag-swatch-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.tag-swatch {
+  width: 24px; height: 24px; padding: 0; border: none; border-radius: 50%; cursor: pointer;
+  background: oklch(var(--l-accent-base) 0.19 var(--th));
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.tag-swatch:hover { transform: scale(1.1); }
+.tag-swatch.active { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px oklch(var(--l-accent-base) 0.19 var(--th)); }
+.tag-swatch:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
 
 /* Tags management modal */
 
@@ -640,17 +669,18 @@ details.advanced[open] > summary { color: var(--text); }
 
 .accent-swatches { display: flex; flex-wrap: wrap; gap: 10px; }
 .accent-swatch {
-  --sw-h: 264; --sw-c: 0.21;
+  --sw-h: 264; --sw-c: 0.21; --sw-neutral: 0;
+  --sw-l: calc(var(--l-accent-base) + (var(--l-accent-neutral) - var(--l-accent-base)) * var(--sw-neutral));
   position: relative; width: 28px; height: 28px; padding: 0; border-radius: 50%; cursor: pointer;
-  border: none; background: oklch(var(--l-accent) var(--sw-c) var(--sw-h));
+  border: none; background: oklch(var(--sw-l) var(--sw-c) var(--sw-h));
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 .accent-swatch:hover { transform: scale(1.08); }
-.accent-swatch.active { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px oklch(var(--l-accent) var(--sw-c) var(--sw-h)); }
+.accent-swatch.active { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px oklch(var(--sw-l) var(--sw-c) var(--sw-h)); }
 .accent-swatch:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
 /* "Custom" swatch: a rainbow ring until a custom color is active, then that color. The real
    <input type=color> is stretched invisibly over it, so a click opens the native picker. */
 .accent-swatch-custom { background: conic-gradient(from 90deg, #f43f5e, #f59e0b, #84cc16, #10b981, #06b6d4, #3b82f6, #8b5cf6, #f43f5e); overflow: hidden; }
-.accent-swatch-custom.active { background: oklch(var(--l-accent) var(--sw-c) var(--sw-h)); }
+.accent-swatch-custom.active { background: oklch(var(--sw-l) var(--sw-c) var(--sw-h)); }
 .accent-swatch-custom input { position: absolute; inset: -4px; width: calc(100% + 8px); height: calc(100% + 8px); opacity: 0; cursor: pointer; border: none; padding: 0; }
 .data-actions { display: flex; gap: 8px; flex-wrap: wrap; }

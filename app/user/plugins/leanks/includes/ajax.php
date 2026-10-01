@@ -244,12 +244,16 @@ function leanks_ajax_stats() {
     $log = YOURLS_DB_TABLE_LOG;
     $db = yourls_get_db( 'read-leanks_stats' );
 
-    $timeseries = $db->fetchPairs(
+    // Zero-filled over exactly the last 30 calendar days (today included), so the chart has one
+    // bar per day -- including days with no clicks -- rather than only the days that had some.
+    $since = date( 'Y-m-d 00:00:00', strtotime( '-29 days' ) );
+    $pairs = $db->fetchPairs(
         "SELECT DATE(click_time) AS d, COUNT(*) AS c FROM `$log`
          WHERE shorturl = :k AND click_time >= :since
          GROUP BY DATE(click_time) ORDER BY d ASC",
-        [ 'k' => $keyword, 'since' => date( 'Y-m-d H:i:s', strtotime( '-30 days' ) ) ]
+        [ 'k' => $keyword, 'since' => $since ]
     );
+    $timeseries = leanks_analytics_zero_fill( $pairs, $since, date( 'Y-m-d H:i:s' ), 'day' );
 
     $referrers = $db->fetchPairs(
         "SELECT referrer, COUNT(*) AS c FROM `$log` WHERE shorturl = :k
@@ -268,7 +272,8 @@ function leanks_ajax_stats() {
         'clicks'     => (int) yourls_get_keyword_clicks( $keyword ),
         'timeseries' => $timeseries,
         'referrers'  => $referrers,
-        'countries'  => $countries,
+        // [{code, name, c}] -- same row shape as the Analytics page's country breakdown.
+        'countries'  => leanks_analytics_add_country_names( leanks_analytics_pairs_to_rows( $countries, 'code' ) ),
     ] );
 }
 yourls_add_action( 'yourls_ajax_leanks_stats', 'leanks_ajax_stats' );

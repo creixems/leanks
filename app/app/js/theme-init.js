@@ -16,6 +16,7 @@
     if (accent && isFinite(accent.h) && isFinite(accent.c)) {
       document.documentElement.style.setProperty('--accent-h', String(accent.h));
       document.documentElement.style.setProperty('--accent-c', String(accent.c));
+      document.documentElement.style.setProperty('--neutral', accent.c < 0.03 ? '1' : '0');
     }
   } catch (e) { /* unparsable / blocked -- keeps the stylesheet's default accent */ }
 })();

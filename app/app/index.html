@@ -104,24 +104,6 @@
     </form>
   </div>
 
-  <div class="list-toolbar">
-    <button type="button" class="btn btn-secondary" id="links-filter-btn">Filter</button>
-    <button type="button" class="btn btn-secondary" id="links-display-btn">Display</button>
-    <div class="topbar-spacer"></div>
-    <div class="topbar-search search-box">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
-      <input type="search" id="search-input" placeholder="Search links...">
-    </div>
-  </div>
-
-  <div class="bulk-bar hidden" id="bulk-bar">
-    <span id="bulk-count"></span>
-    <div style="display:flex;gap:8px;">
-      <button type="button" class="btn btn-ghost btn-sm" id="bulk-cancel-btn">Cancel</button>
-      <button type="button" class="btn btn-danger btn-sm" id="bulk-delete-btn">Delete selected</button>
-    </div>
-  </div>
-
   <div class="stat-row">
     <div class="stat-card">
       <div class="stat-label">Total links</div>
@@ -130,6 +112,22 @@
     <div class="stat-card">
       <div class="stat-label">Total clicks</div>
       <div class="stat-value" id="stat-total-clicks">–</div>
+    </div>
+  </div>
+
+  <div class="list-toolbar">
+    <div class="topbar-search search-box">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+      <input type="search" id="search-input" placeholder="Search links...">
+    </div>
+    <button type="button" class="btn btn-secondary" id="links-display-btn" aria-label="Display options"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M4 6l8 0" /><path d="M16 6l4 0" /><path d="M6 12a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M4 12l2 0" /><path d="M10 12l10 0" /><path d="M15 18a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M4 18l11 0" /><path d="M19 18l1 0" /></svg>Display</button>
+  </div>
+
+  <div class="bulk-bar hidden" id="bulk-bar">
+    <span id="bulk-count"></span>
+    <div style="display:flex;gap:8px;">
+      <button type="button" class="btn btn-ghost btn-sm" id="bulk-cancel-btn">Cancel</button>
+      <button type="button" class="btn btn-danger btn-sm" id="bulk-delete-btn">Delete selected</button>
     </div>
   </div>
 
@@ -329,7 +327,7 @@
     </div>
     <div class="field">
       <label>Tag Color</label>
-      <div class="color-pill-row" id="te-colors"></div>
+      <div class="tag-swatch-row" id="te-colors"></div>
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" id="tag-edit-cancel">Cancel</button>

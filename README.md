@@ -20,9 +20,12 @@ Leanks is YOURLS underneath (redirect engine, database, click tracking) with:
 - **Password-protected links** -- require a password before a short link redirects.
 - **Link expiration** -- by date, by max click count, or both.
 - **UTM campaign tags** -- a built-in UTM builder with a live preview of the final destination URL.
-- **Tags** -- colored tags you can assign to links, show as a column, and filter by.
-- **A links list that scales** -- sortable by clicks or date, filter by tag, search, selectable
-  rows with bulk delete, favicons next to every destination, and remembered page size and sort.
+- **Tags** -- tags in 8 colors (the same hues as the accent presets) that you can assign to
+  links, show as a column, and filter by.
+- **A links list that scales** -- stats on top, then a search bar with a single **Display**
+  menu: filter by tag, switch between rows and cards, choose ordering, page size and columns.
+  Sort by clicks or date from the column headers, select rows for bulk delete, see favicons next
+  to every destination, and have your page size and sort remembered.
 - **QR codes** -- generated client-side for any link, downloadable as PNG.
 - **Analytics** -- a dedicated dashboard page with a clicks chart across 9 time ranges (last 24
   hours through year-to-date, plus a custom range), filters (link, country, continent, device,

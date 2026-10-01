@@ -9,13 +9,13 @@ if ( !defined( 'YOURLS_ABSPATH' ) ) die();
  */
 
 /**
- * Fixed color palette a tag's `color` column is constrained to -- matches the badge tokens in
- * app/css/app.css (badge-red/yellow/green/blue/purple/brown/gray, Tailwind-sourced hex values),
- * so tag chips render with the same design-system colors as every other badge in the app rather
- * than arbitrary hex values.
+ * Fixed color palette a tag's `color` column is constrained to. The first eight are the current
+ * choices (hues on the dashboard's OKLCH accent wheel -- see the `.tag-*` rules in app/css/app.css);
+ * the rest are the original palette names, still accepted so existing tags -- and tags the CSV importer
+ * creates with the neutral default, `gray` -- keep rendering.
  */
 function leanks_tag_colors() {
-    return [ 'red', 'yellow', 'green', 'blue', 'purple', 'brown', 'gray' ];
+    return [ 'red', 'orange', 'amber', 'green', 'teal', 'blue', 'violet', 'pink', 'yellow', 'purple', 'brown', 'gray' ];
 }
 
 function leanks_tags_table() {

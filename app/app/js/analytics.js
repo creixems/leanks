@@ -463,6 +463,9 @@ const Analytics = (function () {
   function escAttr(s) { return escHtml(s); }
 
   return {
+    // Shared with app.js's per-link stats modal so both render countries and dates identically.
+    flagEmoji,
+    formatBucketLabel,
     init() {
       bindTopControls();
       bindBreakdownTabs();

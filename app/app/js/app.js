@@ -1,5 +1,28 @@
 (function () {
-  const TAG_COLORS = ['red', 'yellow', 'green', 'blue', 'purple', 'brown', 'gray']; // keep in sync with leanks_tag_colors() in tags.php
+  // The 8 colors offered when creating/editing a tag -- same OKLCH hue wheel as the accent presets
+  // (see css `.tag-*` rules). Keep in sync with leanks_tag_colors() in tags.php, which additionally
+  // still accepts the original palette names (yellow/purple/brown/gray) so existing tags keep rendering.
+  const TAG_COLORS = ['red', 'orange', 'amber', 'green', 'teal', 'blue', 'violet', 'pink'];
+  const DEFAULT_TAG_COLOR = 'blue';
+
+  // Class string for a tag chip: current-palette colors use the OKLCH `tag-*` classes, legacy
+  // names fall back to the original `badge-*` classes.
+  function tagChipClass(color) {
+    return TAG_COLORS.includes(color) ? `badge tag-tint tag-${color}` : `badge badge-${color}`;
+  }
+
+  function tagSwatchesHtml(activeColor) {
+    return TAG_COLORS.map((c) => `<button type="button" class="tag-swatch tag-${c}${c === activeColor ? ' active' : ''}" data-color="${c}" title="${c.charAt(0).toUpperCase() + c.slice(1)}" aria-label="${c}"></button>`).join('');
+  }
+
+  // Wires a swatch row so exactly one swatch is active; calls onPick(color) on each choice.
+  function bindTagSwatches(rowEl, onPick) {
+    rowEl.querySelectorAll('.tag-swatch').forEach((sw) => sw.addEventListener('click', () => {
+      rowEl.querySelectorAll('.tag-swatch').forEach((x) => x.classList.toggle('active', x === sw));
+      onPick(sw.dataset.color);
+    }));
+  }
+  let newTagColor = DEFAULT_TAG_COLOR; // color for tags created from the inline picker mini-forms
   const LINKS_STATE_KEY = 'leanks-links-state';
 
   function loadPersistedListState() {
@@ -175,7 +198,7 @@
 
   function tagBadges(row) {
     if (!state.columns.tags) return [];
-    return (row.tags || []).map((t) => `<span class="badge badge-${escAttr(t.color)}">${escHtml(t.name)}</span>`);
+    return (row.tags || []).map((t) => `<span class="${tagChipClass(t.color)}">${escHtml(t.name)}</span>`);
   }
 
   function faviconHtml(row) {
@@ -333,23 +356,23 @@
     return tagsCache;
   }
 
-  function updateLinksFilterButtonLabel() {
-    $('#links-filter-btn').textContent = state.tag_id ? 'Filter (1)' : 'Filter';
+  // The Display button doubles as the filter entry point now, so show a small count when a
+  // tag filter is active (the filter is otherwise hidden inside the popover).
+  function updateDisplayButtonLabel() {
+    const btn = $('#links-display-btn');
+    const existing = btn.querySelector('.btn-count');
+    if (existing) existing.remove();
+    if (state.tag_id) btn.insertAdjacentHTML('beforeend', '<span class="btn-count">1</span>');
   }
 
   function bindListToolbar() {
-    $('#links-filter-btn').addEventListener('click', async (e) => {
-      e.stopPropagation();
-      if (UI.popoverKind() === 'links-filter') { UI.closePopover(); return; }
-      UI.reserveKind('links-filter');
-      const tags = await ensureTagsLoaded();
-      if (UI.popoverKind() !== 'links-filter') return;
-      renderLinksFilterPopover(tags);
-    });
-    $('#links-display-btn').addEventListener('click', (e) => {
+    $('#links-display-btn').addEventListener('click', async (e) => {
       e.stopPropagation();
       if (UI.popoverKind() === 'links-display') { UI.closePopover(); return; }
-      renderLinksDisplayPopover();
+      UI.reserveKind('links-display');
+      const tags = await ensureTagsLoaded();
+      if (UI.popoverKind() !== 'links-display') return;
+      renderLinksDisplayPopover(tags);
     });
   }
 
@@ -381,33 +404,6 @@
     });
   }
 
-  function renderLinksFilterPopover(tags) {
-    const options = tags.map((t) => `<option value="${t.id}"${t.id === state.tag_id ? ' selected' : ''}>${escHtml(t.name)}</option>`).join('');
-    const html = `
-      <div class="filter-form">
-        <div class="field"><label>Tag</label><select id="lf-tag"><option value="0">Any</option>${options}</select></div>
-        <div class="popover-actions">
-          <button type="button" class="btn btn-ghost btn-sm" id="lf-clear">Clear</button>
-          <button type="button" class="btn btn-primary btn-sm" id="lf-apply">Apply</button>
-        </div>
-      </div>`;
-    UI.openPopover($('#links-filter-btn'), html, 'links-filter');
-    $('#lf-apply').addEventListener('click', () => {
-      state.tag_id = parseInt($('#lf-tag').value, 10) || 0;
-      state.page = 1;
-      UI.closePopover();
-      updateLinksFilterButtonLabel();
-      loadLinks();
-    });
-    $('#lf-clear').addEventListener('click', () => {
-      state.tag_id = 0;
-      state.page = 1;
-      UI.closePopover();
-      updateLinksFilterButtonLabel();
-      loadLinks();
-    });
-  }
-
   const SORT_OPTIONS = [
     { sort: 'timestamp', order: 'DESC', label: 'Date created (newest)' },
     { sort: 'timestamp', order: 'ASC', label: 'Date created (oldest)' },
@@ -417,11 +413,13 @@
     { sort: 'keyword', order: 'DESC', label: 'Alphabetical (Z-A)' },
   ];
 
-  function renderLinksDisplayPopover() {
+  function renderLinksDisplayPopover(tags) {
+    const tagOptions = tags.map((t) => `<option value="${t.id}"${t.id === state.tag_id ? ' selected' : ''}>${escHtml(t.name)}</option>`).join('');
     const sortOptions = SORT_OPTIONS.map((o) => `<option value="${o.sort}:${o.order}"${o.sort === state.sort && o.order === state.order ? ' selected' : ''}>${o.label}</option>`).join('');
     const perpageOptions = [10, 20, 50, 100].map((n) => `<option value="${n}"${n === state.perpage ? ' selected' : ''}>${n}</option>`).join('');
     const html = `
       <div class="filter-form">
+        <div class="field"><label>Filter by tag</label><select id="ld-tag"><option value="0">All tags</option>${tagOptions}</select></div>
         <div class="view-toggle">
           <button type="button" class="${state.view === 'rows' ? 'active' : ''}" data-view-mode="rows">Rows</button>
           <button type="button" class="${state.view === 'cards' ? 'active' : ''}" data-view-mode="cards">Cards</button>
@@ -445,6 +443,12 @@
       renderCurrentView();
       persistListState();
     }));
+    $('#ld-tag').addEventListener('change', (e) => {
+      state.tag_id = parseInt(e.target.value, 10) || 0;
+      state.page = 1;
+      updateDisplayButtonLabel();
+      loadLinks();
+    });
     $('#ld-sort').addEventListener('change', (e) => {
       const [sort, order] = e.target.value.split(':');
       state.sort = sort;
@@ -503,7 +507,7 @@
 
     bindListToolbar();
     bindSortHeaders();
-    updateLinksFilterButtonLabel();
+    updateDisplayButtonLabel();
 
     $('#select-all-checkbox').addEventListener('change', (e) => {
       $$('#links-tbody .row-checkbox').forEach((box) => {
@@ -582,7 +586,7 @@
     $('#f-selected-tags').innerHTML = selectedTagIds.map((id) => {
       const t = tags.find((x) => x.id === id);
       if (!t) return '';
-      return `<span class="badge badge-${escAttr(t.color)} tag-chip-removable" data-remove-tag="${t.id}">${escHtml(t.name)} &times;</span>`;
+      return `<span class="${tagChipClass(t.color)} tag-chip-removable" data-remove-tag="${t.id}">${escHtml(t.name)} &times;</span>`;
     }).join('');
     $$('#f-selected-tags [data-remove-tag]').forEach((el) => {
       el.addEventListener('click', () => {
@@ -606,15 +610,18 @@
     const rows = tags.length ? tags.map((t) => `
       <label class="tag-picker-row">
         <input type="checkbox" value="${t.id}"${selectedTagIds.includes(t.id) ? ' checked' : ''}>
-        <span class="badge badge-${escAttr(t.color)}">${escHtml(t.name)}</span>
+        <span class="${tagChipClass(t.color)}">${escHtml(t.name)}</span>
       </label>`).join('') : '<div class="mini-row"><span>No tags yet</span></div>';
 
     const html = `
       <div class="filter-form">
         ${rows}
         <div class="tag-picker-new">
-          <input type="text" id="tp-new-name" placeholder="New tag name">
-          <button type="button" class="btn btn-secondary btn-sm" id="tp-new-add">Add</button>
+          <div class="tag-picker-new-row">
+            <input type="text" id="tp-new-name" placeholder="New tag name">
+            <button type="button" class="btn btn-secondary btn-sm" id="tp-new-add">Add</button>
+          </div>
+          <div class="tag-swatch-row" id="tp-new-colors">${tagSwatchesHtml(newTagColor)}</div>
         </div>
       </div>`;
     UI.openPopover($('#f-tags-btn'), html, 'tag-picker');
@@ -628,10 +635,11 @@
       });
     });
 
+    bindTagSwatches($('#tp-new-colors'), (c) => { newTagColor = c; });
     $('#tp-new-add').addEventListener('click', async () => {
       const name = $('#tp-new-name').value.trim();
       if (!name) return;
-      const res = await Api.createTag(name, 'gray');
+      const res = await Api.createTag(name, newTagColor);
       if (!res.success) { toast(res.message || 'Could not create tag', true); return; }
       selectedTagIds.push(res.id);
       const tags2 = await ensureTagsLoaded(true);
@@ -742,7 +750,7 @@
     $('#c-selected-tags').innerHTML = createSelectedTagIds.map((id) => {
       const t = tags.find((x) => x.id === id);
       if (!t) return '';
-      return `<span class="badge badge-${escAttr(t.color)} tag-chip-removable" data-remove-tag="${t.id}">${escHtml(t.name)} &times;</span>`;
+      return `<span class="${tagChipClass(t.color)} tag-chip-removable" data-remove-tag="${t.id}">${escHtml(t.name)} &times;</span>`;
     }).join('');
     $$('#c-selected-tags [data-remove-tag]').forEach((el) => {
       el.addEventListener('click', () => {
@@ -766,15 +774,18 @@
     const rows = tags.length ? tags.map((t) => `
       <label class="tag-picker-row">
         <input type="checkbox" value="${t.id}"${createSelectedTagIds.includes(t.id) ? ' checked' : ''}>
-        <span class="badge badge-${escAttr(t.color)}">${escHtml(t.name)}</span>
+        <span class="${tagChipClass(t.color)}">${escHtml(t.name)}</span>
       </label>`).join('') : '<div class="mini-row"><span>No tags yet</span></div>';
 
     const html = `
       <div class="filter-form">
         ${rows}
         <div class="tag-picker-new">
-          <input type="text" id="ctp-new-name" placeholder="New tag name">
-          <button type="button" class="btn btn-secondary btn-sm" id="ctp-new-add">Add</button>
+          <div class="tag-picker-new-row">
+            <input type="text" id="ctp-new-name" placeholder="New tag name">
+            <button type="button" class="btn btn-secondary btn-sm" id="ctp-new-add">Add</button>
+          </div>
+          <div class="tag-swatch-row" id="ctp-new-colors">${tagSwatchesHtml(newTagColor)}</div>
         </div>
       </div>`;
     UI.openPopover($('#c-tags-btn'), html, 'create-tag-picker');
@@ -788,10 +799,11 @@
       });
     });
 
+    bindTagSwatches($('#ctp-new-colors'), (c) => { newTagColor = c; });
     $('#ctp-new-add').addEventListener('click', async () => {
       const name = $('#ctp-new-name').value.trim();
       if (!name) return;
-      const res = await Api.createTag(name, 'gray');
+      const res = await Api.createTag(name, newTagColor);
       if (!res.success) { toast(res.message || 'Could not create tag', true); return; }
       createSelectedTagIds.push(res.id);
       const tags2 = await ensureTagsLoaded(true);
@@ -1096,22 +1108,40 @@
     const data = await Api.stats(row.keyword);
     if (!data.success) { $('#stats-body').innerHTML = 'Could not load stats.'; return; }
 
-    const days = Object.keys(data.timeseries);
-    const max = Math.max(1, ...Object.values(data.timeseries));
-    const bars = days.map((d) => `<div class="bar" style="height:${Math.max(4, (data.timeseries[d] / max) * 90)}px" title="${d}: ${data.timeseries[d]}"></div>`).join('');
+    const max = Math.max(1, ...data.timeseries.map((p) => p.c));
+    const bars = data.timeseries.map((p) => `<div class="bar" data-t="${p.t}" data-c="${p.c}" style="height:${Math.max(4, (p.c / max) * 90)}px"></div>`).join('');
 
     const referrerRows = Object.entries(data.referrers).map(([r, c]) => `<div class="mini-row"><span>${escHtml(r || 'direct')}</span><span>${c}</span></div>`).join('') || '<div class="mini-row"><span>No data yet</span></div>';
-    const countryRows = Object.entries(data.countries).map(([c, n]) => `<div class="mini-row"><span>${escHtml(c)}</span><span>${n}</span></div>`).join('') || '<div class="mini-row"><span>No data yet</span></div>';
+    const countryRows = data.countries.map((c) => `<div class="mini-row"><span><span class="row-icon-flag">${Analytics.flagEmoji(c.code)}</span> ${escHtml(c.name)}</span><span>${c.c}</span></div>`).join('') || '<div class="mini-row"><span>No data yet</span></div>';
 
     $('#stats-body').innerHTML = `
       <div class="stat-card" style="margin-bottom:14px;"><div class="stat-label">Total clicks</div><div class="stat-value">${data.clicks}</div></div>
       <div class="section-label">Last 30 days</div>
-      <div class="stat-bars">${bars || '<span style="color:var(--text-faint);font-size:0.8rem;">No clicks yet</span>'}</div>
+      <div class="stat-bars-wrap">
+        <div class="stat-bars" id="stat-bars">${bars}</div>
+        <div class="chart-tooltip stat-tooltip hidden" id="stat-tooltip"></div>
+      </div>
       <div class="section-label">Top referrers</div>
       <div class="mini-list">${referrerRows}</div>
       <div class="section-label">Top countries</div>
       <div class="mini-list">${countryRows}</div>
     `;
+
+    // Same "Mon D: N" tooltip as the Analytics chart, positioned over the hovered bar.
+    const barsEl = $('#stat-bars');
+    const tip = $('#stat-tooltip');
+    barsEl.addEventListener('mouseover', (e) => {
+      const bar = e.target.closest('.bar');
+      if (!bar) return;
+      tip.textContent = `${Analytics.formatBucketLabel(bar.dataset.t, 'day')}: ${Number(bar.dataset.c).toLocaleString()}`;
+      tip.classList.remove('hidden');
+      const wrapRect = barsEl.parentElement.getBoundingClientRect();
+      const barRect = bar.getBoundingClientRect();
+      const half = tip.offsetWidth / 2;
+      const center = barRect.left - wrapRect.left + barRect.width / 2;
+      tip.style.left = Math.min(Math.max(center, half), wrapRect.width - half) + 'px';
+    });
+    barsEl.addEventListener('mouseleave', () => tip.classList.add('hidden'));
   }
 
   // ---------- QR ----------
@@ -1133,12 +1163,6 @@
   }
 
   // ---------- tags management modal ----------
-  function colorLabel(c) { return c.charAt(0).toUpperCase() + c.slice(1); }
-
-  function colorPillsHtml(activeColor) {
-    return TAG_COLORS.map((c) => `<button type="button" class="color-pill pill-${c}${c === activeColor ? ' active' : ''}" data-color="${c}">${colorLabel(c)}</button>`).join('');
-  }
-
   async function openTagsModal() {
     $('#tags-body').innerHTML = 'Loading…';
     openModal('tags-modal-backdrop');
@@ -1150,7 +1174,7 @@
 
     const rows = tags.length ? tags.map((t) => `
       <div class="tag-row">
-        <span class="badge badge-${escAttr(t.color)}">${escHtml(t.name)}</span>
+        <span class="${tagChipClass(t.color)}">${escHtml(t.name)}</span>
         <span class="tag-row-count">${t.link_count} link${t.link_count === 1 ? '' : 's'}</span>
         <div class="tag-row-actions">
           <button type="button" class="btn btn-ghost btn-sm" data-edit="${t.id}">Rename</button>
@@ -1186,12 +1210,9 @@
     closeModal('tags-modal-backdrop');
     $('#tag-edit-modal-title').textContent = tag ? 'Edit tag' : 'New tag';
     $('#te-name').value = tag ? tag.name : '';
-    let selectedColor = tag ? tag.color : 'gray';
-    $('#te-colors').innerHTML = colorPillsHtml(selectedColor);
-    $$('#te-colors .color-pill').forEach((pill) => pill.addEventListener('click', () => {
-      selectedColor = pill.dataset.color;
-      $$('#te-colors .color-pill').forEach((p) => p.classList.toggle('active', p === pill));
-    }));
+    let selectedColor = tag ? tag.color : DEFAULT_TAG_COLOR; // a legacy color (e.g. gray) simply shows no swatch selected
+    $('#te-colors').innerHTML = tagSwatchesHtml(selectedColor);
+    bindTagSwatches($('#te-colors'), (c) => { selectedColor = c; });
 
     const saveBtn = $('#te-save');
     const onSave = async () => {
@@ -1281,6 +1302,7 @@
     { id: 'violet',   name: 'Violet',   h: 300,  c: 0.21 },
     { id: 'graphite', name: 'Graphite', h: 264,  c: 0    },
   ];
+  const NEUTRAL_CHROMA = 0.03; // below this the accent counts as gray -> near-black / near-white
   const DEFAULT_ACCENT_HEX = '#6366f1';
 
   // sRGB hex -> OKLCH hue/chroma (Björn Ottosson's OKLab matrices). Lightness is dropped on
@@ -1311,6 +1333,8 @@
   function applyAccent(accent) {
     document.documentElement.style.setProperty('--accent-h', String(accent.h));
     document.documentElement.style.setProperty('--accent-c', String(accent.c));
+    // Keep the 0.03 threshold in sync with js/theme-init.js.
+    document.documentElement.style.setProperty('--neutral', accent.c < NEUTRAL_CHROMA ? '1' : '0');
   }
 
   function setAccent(accent) {
@@ -1323,7 +1347,7 @@
     const box = $('#s-accent-swatches');
     box.innerHTML = ACCENT_PRESETS.map((p) => `
       <button type="button" class="accent-swatch" data-accent-id="${p.id}" title="${p.name}" aria-label="${p.name}"
-        style="--sw-h:${p.h};--sw-c:${p.c};"></button>`).join('') + `
+        style="--sw-h:${p.h};--sw-c:${p.c};--sw-neutral:${p.c < NEUTRAL_CHROMA ? 1 : 0};"></button>`).join('') + `
       <span class="accent-swatch accent-swatch-custom" id="s-accent-custom" title="Custom color">
         <input type="color" id="s-accent-custom-input" aria-label="Custom accent color" value="${DEFAULT_ACCENT_HEX}">
       </span>`;
@@ -1345,6 +1369,7 @@
     if (current.id === 'custom') {
       custom.style.setProperty('--sw-h', current.h);
       custom.style.setProperty('--sw-c', current.c);
+      custom.style.setProperty('--sw-neutral', current.c < NEUTRAL_CHROMA ? 1 : 0);
       if (current.hex) $('#s-accent-custom-input').value = current.hex;
     }
   }
