@@ -334,3 +334,54 @@ footer.block { padding: 6vh 0 8vh; }
 .faq details[open] summary::after { content: "\2212"; }
 .faq details p { margin: 0 0 18px; color: var(--muted); font-size: 15px; max-width: 64ch; }
 .faq code { font-size: 0.88em; background: var(--card-2); border: 1px solid var(--hairline); padding: 1px 6px; border-radius: 6px; }
+
+/* ---------- Lightbox ---------- */
+
+.shot img, .gallery img { cursor: zoom-in; }
+
+html:has(dialog.lightbox[open]) { overflow: hidden; }
+
+.lightbox { outline: none; }
+.lightbox {
+  position: fixed; inset: 0;
+  width: 100vw; height: 100vh; height: 100dvh;
+  max-width: none; max-height: none;
+  margin: 0; padding: 24px; border: 0;
+  background: transparent; color: #fff;
+}
+.lightbox[open] { display: flex; align-items: center; justify-content: center; }
+.lightbox::backdrop { background: rgba(8, 12, 14, 0.84); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+
+.lb-stage { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: 100%; }
+.lb-img {
+  display: block; width: auto; height: auto;
+  max-width: min(94vw, 1500px); max-height: calc(100vh - 120px); max-height: calc(100dvh - 120px);
+  border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  cursor: default;
+}
+.lb-cap { font-size: 14px; color: rgba(255, 255, 255, 0.78); text-align: center; }
+
+.lb-btn {
+  position: absolute; width: 44px; height: 44px; padding: 0;
+  display: grid; place-items: center;
+  border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(20, 22, 24, 0.62); color: #fff; cursor: pointer;
+}
+.lb-btn:hover { background: rgba(255, 255, 255, 0.2); }
+.lb-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.lb-btn svg { width: 20px; height: 20px; }
+.lb-close { top: 16px; right: 16px; }
+.lb-prev, .lb-next { top: 50%; transform: translateY(-50%); }
+.lb-prev { left: 16px; }
+.lb-next { right: 16px; }
+
+@media (max-width: 700px) {
+  .lb-img { max-height: calc(100vh - 180px); max-height: calc(100dvh - 180px); }
+  .lb-prev, .lb-next { top: auto; bottom: 16px; transform: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .lightbox[open] { animation: lb-in 0.18s ease; }
+  @keyframes lb-in { from { opacity: 0; } to { opacity: 1; } }
+}
