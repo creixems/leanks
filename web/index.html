@@ -5,12 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Leanks: Self-hosted URL shortener</title>
 <meta name="description" content="Leanks is a free, open-source, self-hosted URL shortener with a modern dashboard, built on YOURLS. Password protection, expiration, UTM tags, QR codes and analytics — no SaaS bill, and your data stays on your own PHP/MySQL hosting.">
-<link rel="icon" type="image/svg+xml" href="assets/logomark.svg">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<meta name="author" content="Creixems Studio">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#e2ebe1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1b22" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" type="image/svg+xml" href="/assets/logomark.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="mask-icon" href="/assets/icons/safari-pinned-tab.svg" color="#040404">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">
 <link rel="stylesheet" href="styles.css">
 <link rel="canonical" href="https://leanks.cc/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://leanks.cc/">
 <meta property="og:site_name" content="Leanks">
+<meta property="og:locale" content="en_US">
 <meta property="og:title" content="Leanks: Self-hosted URL shortener">
 <meta property="og:description" content="Free and open-source self-hosted link shortener with a modern dashboard — no SaaS bill, and you own your data.">
 <meta property="og:image" content="https://leanks.cc/assets/social-preview.png">
@@ -21,9 +34,42 @@
 <meta name="twitter:title" content="Leanks: Self-hosted URL shortener">
 <meta name="twitter:description" content="Free and open-source self-hosted link shortener with a modern dashboard — no SaaS bill, and you own your data.">
 <meta name="twitter:image" content="https://leanks.cc/assets/social-preview.png">
+<meta name="twitter:image:alt" content="Leanks: YOURLS, for 2026 — with the Leanks dashboard">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://leanks.cc/#website",
+      "url": "https://leanks.cc/",
+      "name": "Leanks",
+      "description": "A free, open-source, self-hosted URL shortener with a modern dashboard, built on YOURLS.",
+      "inLanguage": "en"
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://leanks.cc/#software",
+      "name": "Leanks",
+      "description": "A free, open-source, self-hosted URL shortener with a modern dashboard, built on YOURLS. Password-protected links, expiration, UTM tags, QR codes and analytics on your own PHP/MySQL hosting.",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Any (requires PHP 8.1+ and MySQL 5.7+ or MariaDB)",
+      "softwareVersion": "1.4.1",
+      "url": "https://leanks.cc/",
+      "downloadUrl": "https://github.com/creixems/leanks/releases/latest",
+      "codeRepository": "https://github.com/creixems/leanks",
+      "license": "https://github.com/creixems/leanks/blob/main/LICENSE",
+      "isAccessibleForFree": true,
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "image": "https://leanks.cc/assets/social-preview.png",
+      "author": { "@type": "Organization", "name": "Creixems Studio", "url": "https://creixems.com" }
+    }
+  ]
+}
+</script>
 </head>
 <body>
 
@@ -32,11 +78,11 @@
     <div class="intro">
       <div class="brand">
         <span class="mark"><img src="assets/logomark.svg" alt="" width="52" height="52"></span>
-        <h1><img class="logotype" src="assets/logotype.svg" alt="Leanks" width="153" height="30"></h1>
+        <div class="logo"><img class="logotype" src="assets/logotype.svg" alt="Leanks" width="153" height="30"></div>
         <span class="version">v1.4.1</span>
       </div>
 
-      <p class="tagline">YOURLS, <em>for 2026.</em></p>
+      <h1 class="tagline">YOURLS, <em>for 2026.</em></h1>
       <p class="sub">The proven self-hosted link shortener, with the modern dashboard it never had. Free and open source, no SaaS bill, and your links and data stay on your own server.</p>
 
       <div class="cta-row">
@@ -74,7 +120,7 @@
       <figure>
         <picture>
           <source srcset="assets/dashboard-dark.png" media="(prefers-color-scheme: dark)">
-          <img src="assets/dashboard.png" width="2480" height="1560" alt="The Leanks dashboard: a one-line create form, totals, a search bar with a Display menu, and a list of short links with tags, click counts, creation dates and QR / stats / edit / delete actions">
+          <img src="assets/dashboard.png" width="2480" height="1560" fetchpriority="high" decoding="async" alt="The Leanks dashboard: a one-line create form, totals, a search bar with a Display menu, and a list of short links with tags, click counts, creation dates and QR / stats / edit / delete actions">
         </picture>
         <figcaption>The Leanks dashboard — a link list, not a plugin admin screen.</figcaption>
       </figure>
@@ -257,6 +303,42 @@
     </div>
   </section>
 
+  <!-- ---------- FAQ ---------- -->
+
+  <section class="block" id="faq">
+    <div class="wrap">
+      <p class="eyebrow">FAQ</p>
+      <h2>Common questions.</h2>
+
+      <div class="faq">
+        <details>
+          <summary>Is Leanks really free?</summary>
+          <p>Yes. Leanks is open source under the MIT license, with no paid tier and no feature gates. You only pay for the PHP/MySQL hosting you run it on, which can be an ordinary shared host.</p>
+        </details>
+        <details>
+          <summary>How is Leanks different from YOURLS?</summary>
+          <p>Leanks is YOURLS underneath: the redirect engine, database schema, click tracking and plugin API stay stock. On top it adds a modern dashboard plus password-protected links, expiration, a UTM builder, tags, QR codes, analytics, CSV import and export, and one-click updates.</p>
+        </details>
+        <details>
+          <summary>What hosting do I need?</summary>
+          <p>PHP 8.1+, MySQL 5.7+ or MariaDB with the <code>pdo_mysql</code> extension, and Apache with <code>mod_rewrite</code>. Typical shared and cPanel hosting works. There is no Node build step and no Docker.</p>
+        </details>
+        <details>
+          <summary>Where is my data stored?</summary>
+          <p>In the MySQL database on your own server. Leanks is software you install, not a hosted service, so there is no account with us and nothing to sign up for.</p>
+        </details>
+        <details>
+          <summary>Can I move my links in and out?</summary>
+          <p>Yes. CSV import detects columns automatically and reports duplicates and errors per row. CSV export uses the same column names, so a file re-imports cleanly into another install. Clicks, creation dates and tags travel with it; passwords, expirations and UTM fields don't.</p>
+        </details>
+        <details>
+          <summary>How do updates work?</summary>
+          <p>The dashboard notices new releases on GitHub and applies them in place after verifying a checksum and taking an automatic backup. If anything fails partway, it rolls back from that backup.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
   <!-- ---------- Footer ---------- -->
 
   <footer class="block">
@@ -270,6 +352,7 @@
           <a href="#features">Features</a>
           <a href="#how-it-works">How it works</a>
           <a href="#installing">Installing</a>
+          <a href="#faq">FAQ</a>
           <a href="https://github.com/creixems/leanks" target="_blank" rel="noopener">GitHub</a>
         </nav>
       </div>

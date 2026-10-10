@@ -1,0 +1,31 @@
+# Leanks
+
+> Leanks is a free, open-source (MIT), self-hosted URL shortener built on YOURLS, with a modern dashboard. It runs on ordinary PHP/MySQL shared hosting, so there is no SaaS bill and all links and click data stay in your own database.
+
+Current version: 1.4.1. Requirements: PHP 8.1+, MySQL 5.7+ or MariaDB (pdo_mysql), Apache with mod_rewrite. No Node build step, no Docker.
+
+Key features:
+- One-line link creation (destination, short link, title), with advanced options one click away
+- Password-protected links, and expiration by date, by max click count, or both
+- UTM campaign builder with a live preview of the final URL
+- Tags in 8 colors, search, sorting, bulk delete, rows or cards view
+- QR codes generated client-side, downloadable as PNG
+- Analytics: clicks over 9 time ranges, filters (link, country, device, browser, OS, referrer), ranked breakdowns
+- Default domain redirect for visitors who open the bare short domain
+- CSV import (column auto-detection) and CSV export
+- Light, dark and system themes with a custom accent color
+- One-click updates with checksum verification, automatic backup and rollback
+
+How it relates to YOURLS: Leanks keeps the YOURLS core (redirect engine, database schema, click tracking, plugin API) stock and adds a small plugin plus a custom dashboard on top, so YOURLS itself stays upgradeable.
+
+## Docs
+
+- [Website](https://leanks.cc/): overview, features, how it works, installation steps
+- [GitHub repository](https://github.com/creixems/leanks): source code, issues, releases
+- [README](https://raw.githubusercontent.com/creixems/leanks/main/README.md): full documentation (installing, project layout, plugin internals, updating, local development)
+- [Latest release](https://github.com/creixems/leanks/releases/latest): downloadable release archive
+- [License](https://github.com/creixems/leanks/blob/main/LICENSE): MIT
+
+## Optional
+
+- [Creixems Studio](https://creixems.com): the studio behind Leanks

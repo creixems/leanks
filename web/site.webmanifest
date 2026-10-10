@@ -1,0 +1,15 @@
+{
+  "name": "Leanks",
+  "short_name": "Leanks",
+  "description": "A free, open-source, self-hosted URL shortener with a modern dashboard, built on YOURLS.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "background_color": "#e2ebe1",
+  "theme_color": "#040404",
+  "icons": [
+    { "src": "/assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

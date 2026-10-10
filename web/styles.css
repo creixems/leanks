@@ -88,7 +88,7 @@ code { font: 0.9em/1.4 var(--mono); }
 }
 .brand .mark img { width: 100%; height: 100%; display: block; }
 
-.brand h1 { line-height: 0; }
+.brand .logo { line-height: 0; }
 
 .logotype { display: block; }
 
@@ -318,3 +318,19 @@ footer.block { padding: 6vh 0 8vh; }
   .foot-row { flex-direction: column; align-items: flex-start; }
   .foot-legal { flex-direction: column; }
 }
+
+/* ---------- FAQ ---------- */
+
+.faq { max-width: 760px; }
+.faq details { border-top: 1px solid var(--hairline); }
+.faq details:last-child { border-bottom: 1px solid var(--hairline); }
+.faq summary {
+  cursor: pointer; list-style: none;
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 16px 0; font: 600 16px/1.4 var(--display); letter-spacing: -0.01em;
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font: 400 22px/1 var(--body); color: var(--faint); flex: none; }
+.faq details[open] summary::after { content: "\2212"; }
+.faq details p { margin: 0 0 18px; color: var(--muted); font-size: 15px; max-width: 64ch; }
+.faq code { font-size: 0.88em; background: var(--card-2); border: 1px solid var(--hairline); padding: 1px 6px; border-radius: 6px; }
